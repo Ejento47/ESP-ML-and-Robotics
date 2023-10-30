@@ -1,1 +1,1 @@
-print("your mom is gay")
+print("your mom is lesbian")
