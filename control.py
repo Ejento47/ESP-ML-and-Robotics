@@ -5,20 +5,20 @@ import math
 
 
 class Car_Dynamics:
-    def __init__(self, x_0, y_0, v_0, psi_0, length, dt):
+    def __init__(self, x_0, y_0, v_0, psi_0, length, dt): 
         self.dt = dt             # sampling time
         self.L = length          # vehicle length
-        self.x = x_0
-        self.y = y_0
-        self.v = v_0
-        self.psi = psi_0
-        self.state = np.array([[self.x, self.y, self.v, self.psi]]).T
+        self.x = x_0             # initial x position
+        self.y = y_0             # initial y position
+        self.v = v_0             # initial velocity
+        self.psi = psi_0         # initial heading angle
+        self.state = np.array([[self.x, self.y, self.v, self.psi]]).T # initial state vector (4x1)
 
     def move(self, accelerate, delta):
-        x_dot = self.v*np.cos(self.psi)
-        y_dot = self.v*np.sin(self.psi)
-        v_dot = accelerate
-        psi_dot = self.v*np.tan(delta)/self.L
+        x_dot = self.v*np.cos(self.psi) #Vel in the x direction
+        y_dot = self.v*np.sin(self.psi) #Vel in the y direction
+        v_dot = accelerate #acceleration 
+        psi_dot = self.v*np.tan(delta)/self.L #change in heading angle
         return np.array([[x_dot, y_dot, v_dot, psi_dot]]).T
 
     def update_state(self, state_dot):
