@@ -226,7 +226,7 @@ class AStarPlanner:
 
 class PathPlanning:
     def __init__(self,obstacles):
-        self.margin = 5
+        self.margin = 5 # this margin is for making sure the pathplanning is not too close to the obstacles
         #sacale obstacles from env margin to pathplanning margin
         obstacles = obstacles + np.array([self.margin,self.margin])
         obstacles = obstacles[(obstacles[:,0]>=0) & (obstacles[:,1]>=0)]
@@ -255,7 +255,7 @@ class PathPlanning:
 class ParkPathPlanning:
     def __init__(self,obstacles):
         self.margin = 5
-        #sacale obstacles from env margin to pathplanning margin
+        #scale obstacles from env margin to pathplanning margin
         obstacles = obstacles + np.array([self.margin,self.margin])
         obstacles = obstacles[(obstacles[:,0]>=0) & (obstacles[:,1]>=0)]
 

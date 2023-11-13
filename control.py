@@ -11,24 +11,24 @@ class Car_Dynamics:
         self.x = x_0             # initial x position
         self.y = y_0             # initial y position
         self.v = v_0             # initial velocity
-        self.psi = psi_0         # initial heading angle
+        self.psi = psi_0         # initial angle
         self.state = np.array([[self.x, self.y, self.v, self.psi]]).T # initial state vector (4x1)
 
     def move(self, accelerate, delta):
         x_dot = self.v*np.cos(self.psi) #Vel in the x direction
         y_dot = self.v*np.sin(self.psi) #Vel in the y direction
         v_dot = accelerate #acceleration 
-        psi_dot = self.v*np.tan(delta)/self.L #change in heading angle
-        return np.array([[x_dot, y_dot, v_dot, psi_dot]]).T
+        psi_dot = self.v*np.tan(delta)/self.L #change in angle; yaw rate
+        return np.array([[x_dot, y_dot, v_dot, psi_dot]]).T #return the state vector as a 4x1 matrix
 
     def update_state(self, state_dot):
-        # self.u_k = command
+        # self.u_k = command 
         # self.z_k = state
-        self.state = self.state + self.dt*state_dot
-        self.x = self.state[0,0]
-        self.y = self.state[1,0]
-        self.v = self.state[2,0]
-        self.psi = self.state[3,0]
+        self.state = self.state + self.dt*state_dot #update the state vector with based on the changes with time
+        self.x = self.state[0,0] #update the x position 
+        self.y = self.state[1,0] #update the y position
+        self.v = self.state[2,0] #update the velocity
+        self.psi = self.state[3,0] #update the angle
         
     def process_sensor_data(self, sensor_data):
         """
@@ -37,7 +37,7 @@ class Car_Dynamics:
         """
         new_obstacles = []
         for data in sensor_data:
-            # Assuming data is a tuple (distance, angle) relative to the car
+            #Data is a tuple (distance, angle) relative to the car
             distance, angle = data
 
             # Filter based on the 120-degree view and distance
@@ -81,10 +81,11 @@ class Car_Dynamics:
         car_orientation_rad = math.radians(car_orientation)
         fov_start = car_orientation_rad - math.radians(fov_deg / 2)
         fov_end = car_orientation_rad + math.radians(fov_deg / 2)
-
+        
+        # Iterate through each cell in the environment
         for y in range(len(environment)):
             for x in range(len(environment[y])):
-                if environment[y][x] == 1:  # Assuming 1 represents an obstacle
+                if environment[y][x] == 1:  #  1 represents an obstacle
                     obstacle_pos = (x, y)
                     rel_x, rel_y = obstacle_pos[0] - car_x, obstacle_pos[1] - car_y
                     distance = math.sqrt(rel_x**2 + rel_y**2)

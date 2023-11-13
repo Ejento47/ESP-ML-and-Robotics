@@ -34,17 +34,11 @@ if __name__ == '__main__':
     parking1 = Parking1(random_emptyslot) # random parking slot selection ## of can be args.parking
     end, obs = parking1.generate_obstacles()
 
-    # add squares
+    # Adding of obstables to the environment
     # square1 = make_square(10,65,20)
     # square2 = make_square(15,30,20)
     # square3 = make_square(50,50,10)
     # obs = np.vstack([obs,square1,square2,square3])
-
-    # Rahneshan logo
-    # start = np.array([50,5])
-    # end = np.array([35,67])
-    # rah = np.flip(cv2.imread('READ_ME/rahneshan_obstacle.png',0), axis=0)
-    # obs = np.vstack([np.where(rah<100)[1],np.where(rah<100)[0]]).T
 
     # new_obs = np.array([[78,78],[79,79],[78,79]])
     # obs = np.vstack([obs,new_obs])
