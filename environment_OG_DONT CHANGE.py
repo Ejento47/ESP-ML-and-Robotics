@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import random
 
 class Environment:
     def __init__(self,obstacles):
@@ -92,67 +91,29 @@ class Environment:
 class Parking1:
     def __init__(self, car_pos):
         self.car_obstacle = self.make_car()
-        self.walls = self.define_walls()
-
-        # Define parking slots along walls
-        self.parking_slots = self.define_parking_slots()
-
-        # Randomly place cars in parking slots
-        self.cars = self.randomly_place_cars()
-
-        self.end = self.cars[car_pos][0] if car_pos in self.cars else None
-        if self.end:
-            self.cars.pop(car_pos)
-
-    def define_walls(self):
-        # Define walls
-        walls = [[70, i] for i in range(-5, 90)] + \
-                [[30, i] for i in range(10, 105)] + \
-                [[i, 10] for i in range(30, 36)] + \
-                [[i, 90] for i in range(70, 76)]
-        return walls
-
-    def define_parking_slots(self):
-        # Define parking slots along the walls
-        parking_slots = []
-        # Example: Add parking slots along a specific wall
-        for i in range(20, 80, 10):  # Adjust ranges as needed
-            parking_slots.append([35, i])  # Adjust coordinates as needed
-            parking_slots.append([65, i])  # Repeat for other walls as needed
-        # ... Add more parking slots along other walls
-        return parking_slots
-
-    def randomly_place_cars(self):
-        # Randomly place cars in the defined parking slots
-        cars = {}
-        available_slots = self.parking_slots.copy()
-        num_cars = random.randint(0, len(available_slots) - 1)
-        for i in range(1, num_cars + 1):
-            chosen_slot = random.choice(available_slots)
-            cars[i] = [chosen_slot]
-            available_slots.remove(chosen_slot)
-        return cars
+        self.walls = [[70,i] for i in range(-5,90) ]+\
+                     [[30,i] for i in range(10,105)]+\
+                     [[i,10] for i in range(30,36) ]+\
+                     [[i,90] for i in range(70,76) ] #+ [[i,20] for i in range(-5,50)]
+        # self.walls = [0,100]
+        self.obs = np.array(self.walls)
+        self.cars = {1 : [[35,20]], 2 : [[65,20]], 3 : [[75,20]], 4 : [[95,20]],
+                     5 : [[35,32]], 6 : [[65,32]], 7 : [[75,32]], 8 : [[95,32]],
+                     9 : [[35,44]], 10: [[65,44]], 11: [[75,44]], 12: [[95,44]],
+                     13: [[35,56]], 14: [[65,56]], 15: [[75,56]], 16: [[95,56]],
+                     17: [[35,68]], 18: [[65,68]], 19: [[75,68]], 20: [[95,68]],
+                     21: [[35,80]], 22: [[65,80]], 23: [[75,80]], 24: [[95,80]]} ### random this
+        self.end = self.cars[car_pos][0]
+        self.cars.pop(car_pos)
 
     def generate_obstacles(self):
-        # Generate the obstacle array
-        obs = np.array(self.walls)
-        for car in self.cars.values():
-            for pos in car:
-                obstacle = self.car_obstacle + pos + 1
-                obs = np.concatenate((obs, obstacle), axis=0)
-        
-        # Calculate the end position
-        end_position = self.calculate_end_position()
-
-        # Ensure that only two values are returned
-        return end_position, obs
-
-    def calculate_end_position(self):
-        # Implement the logic to determine the end position
-        # Example: return the last parking slot or a specific target position
-        return self.end  # or any other logic to determine the end position
+        for i in self.cars.keys():
+            for j in range(len(self.cars[i])):
+                obstacle = self.car_obstacle + self.cars[i] + 1
+                self.obs = np.append(self.obs, obstacle)
+        return self.end, np.array(self.obs).reshape(-1,2)
 
     def make_car(self):
-        car_obstacle_x, car_obstacle_y = np.meshgrid(np.arange(-2, 2), np.arange(-4, 4))
-        car_obstacle = np.dstack([car_obstacle_x, car_obstacle_y]).reshape(-1, 2)
+        car_obstacle_x, car_obstacle_y = np.meshgrid(np.arange(-2,2), np.arange(-4,4))
+        car_obstacle = np.dstack([car_obstacle_x, car_obstacle_y]).reshape(-1,2)
         return car_obstacle
