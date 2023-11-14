@@ -102,11 +102,20 @@ class Parking1:
                      9 : [[35,44]], 10: [[65,44]], 11: [[75,44]], 12: [[95,44]],
                      13: [[35,56]], 14: [[65,56]], 15: [[75,56]], 16: [[95,56]],
                      17: [[35,68]], 18: [[65,68]], 19: [[75,68]], 20: [[95,68]],
-                     21: [[35,80]], 22: [[65,80]], 23: [[75,80]], 24: [[95,80]]}
-        if car_pos in self.cars.keys(): #if car pos is 0 - 23, self.end will have an end goal. Else, it will be original end location
+                     21: [[35,80]], 22: [[65,80]], 23: [[75,80]], 24: [[95,80]]} #parking slots location
+        
+        self.parking_slots ={1 : True, 2 : True, 3 : True, 4 : True,
+                            5 : True, 6 : True, 7 : True, 8 : True,
+                            9 : True, 10: True, 11: True, 12: True,
+                            13: True, 14: True, 15: True, 16: True,
+                            17: True, 18: True, 19: True, 20: True,
+                            21: True, 22: True, 23: True, 24: True} #parking slots occupancy status (True = occupied , False = empty)
+        if car_pos in self.cars.keys(): #if car_pos is a valid parking slot
             # self.end = self.cars[car_pos][0]
+            # self.parking_slots[car_pos] = False
             self.cars.pop(car_pos)
-        self.end = end 
+        # else:
+            self.end =  end
         
 
     def generate_obstacles(self):

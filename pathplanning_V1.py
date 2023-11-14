@@ -89,7 +89,7 @@ class AStarPlanner:
 
             c_id = min(
                 open_set,
-                key=lambda o: open_set[o].cost + self.calc_heuristic(goal_node,
+                key=lambda o: open_set[o].cost + self.manhattan_heuristic(goal_node,
                                                                      open_set[
                                                                          o]))
             current = open_set[c_id]
@@ -144,8 +144,13 @@ class AStarPlanner:
 
         return rx, ry
 
-    @staticmethod
-    def calc_heuristic(n1, n2):
+     # @staticmethod
+    def manhattan_heuristic(n1, n2):
+        w = 1.0  # weight of heuristic
+        d = w * (abs(n1.x - n2.x) + abs(n1.y - n2.y))
+        return d      
+
+    def eucliean_heuristic(n1, n2):
         w = 1.0  # weight of heuristic
         d = w * math.hypot(n1.x - n2.x, n1.y - n2.y)
         return d

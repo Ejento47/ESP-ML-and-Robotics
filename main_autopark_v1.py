@@ -5,7 +5,7 @@ import argparse
 import random
 
 from environment_v1 import Environment, Parking1
-from pathplanning_V1 import PathPlanning, ParkPathPlanning, interpolate_path
+from pathplanning import PathPlanning, ParkPathPlanning, interpolate_path
 from control_v1 import Car_Dynamics, MPC_Controller, Linear_MPC_Controller
 from utils import angle_of_line, make_square, DataLogger
 
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     logger = DataLogger()
 
-    ########################## default variables for start and end ################################################
+    ########################## default variables for start and end ##############################
     start = np.array([args.x_start, args.y_start])
     original_end   = np.array([85, 10])
     #############################################################################################
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     ########################## defining obstacles ###############################################
     random_emptyslot = np.random.randint(-10,24)
     parking1 = Parking1(5,original_end) # random parking slot selection ## of can be args.parking
-    end,car_obs,env_obs = parking1.generate_obstacles()
+    end,car_obs,env_obs = parking1.generate_obstacles() #car_obs is what car can see and env_obs is what see
 
 
 
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     #############################################################################################
 
     ############################# path planning #################################################
-    park_path_planner = ParkPathPlanning(car_obs)
+    # park_path_planner = ParkPathPlanning(car_obs) #parking path planner
     path_planner = PathPlanning(car_obs)
 
     # print('planning park scenario ...')
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     # interpolated_park_path = interpolate_path(park_path, sample_rate=2) 
     # interpolated_park_path = np.vstack([ensure_path1[::-1], interpolated_park_path, ensure_path2[::-1]])
 
-    env.draw_path(interpolated_path)
+    env.draw_path(path)
     # env.draw_path(interpolated_park_path)
 
     final_path = interpolated_path
@@ -88,6 +88,7 @@ if __name__ == '__main__':
             
             acc, delta = controller.optimize(my_car, final_path[i:i+MPC_HORIZON])
             my_car.update_state(my_car.move(acc,  delta))
+            #sensor update
             res = env.render(my_car.x, my_car.y, my_car.psi, delta)
             logger.log(point, my_car, acc, delta)
             cv2.imshow('environment', res)
@@ -96,6 +97,7 @@ if __name__ == '__main__':
                 cv2.imwrite('res.png', res*255)
             if point[0] -0.5 == original_end[0] and point[1] -0.5 == original_end[1]:
                 print('~ No parking slots found, driver to take over ~')
+                # break
 
     # zeroing car steer
     res = env.render(my_car.x, my_car.y, my_car.psi, 0)
