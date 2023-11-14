@@ -27,9 +27,9 @@ class Environment:
                                       np.int32)
 
         #height and width
-        self.background = np.ones((1000+20*self.margin,1000+20*self.margin,3))
-        self.background[10:1000+20*self.margin:10,:] = np.array([200,200,200])/255
-        self.background[:,10:1000+20*self.margin:10] = np.array([200,200,200])/255
+        self.background = np.ones((1000+20*self.margin,1000+20*self.margin,3)) #creating background image of environment in white
+        self.background[10:1000+20*self.margin:10,:] = np.array([200,200,200])/255 #setting of gridlines by setting every 10th pixel to grey in x direction
+        self.background[:,10:1000+20*self.margin:10] = np.array([200,200,200])/255 #setting of gridlines by setting every 10th pixel to grey in y direction
         self.place_obstacles(obstacles)
                 
     def place_obstacles(self, obs):

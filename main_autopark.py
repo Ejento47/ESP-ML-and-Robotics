@@ -5,7 +5,7 @@ import argparse
 import random
 
 from environment import Environment, Parking1
-from pathplanning_ZS import PathPlanning, ParkPathPlanning, interpolate_path
+from pathplanning import PathPlanning, ParkPathPlanning, interpolate_path
 from control import Car_Dynamics, MPC_Controller, Linear_MPC_Controller
 from utils import angle_of_line, make_square, DataLogger
 
@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
     ########################## default variables ################################################
     start = np.array([args.x_start, args.y_start])
-    end   = np.array([args.x_end, args.y_end])
+    end   = np.array([90, 80])
     #############################################################################################
 
     # environment margin  : 5
@@ -51,23 +51,17 @@ if __name__ == '__main__':
     controller = MPC_Controller()
     # controller = Linear_MPC_Controller()
 
-    parking_slots = parking1.get_parking_slots()  # Assuming you have such a method
-
-    # Then, when calling render, pass parking_slots
-    res = env.render(my_car.x, my_car.y, my_car.psi, 0, parking_slots)    
-
+    res = env.render(my_car.x, my_car.y, my_car.psi, 0)
     cv2.imshow('environment', res)
     key = cv2.waitKey(1)
     #############################################################################################
-    '''
-    Need to implement a code here to replace the whole part below to make the entire path planning an iterative process and to make use of the control in this process.
-    '''
 
     ############################# path planning #################################################
     park_path_planner = ParkPathPlanning(obs)
     path_planner = PathPlanning(obs)
 
     print('planning park scenario ...')
+    print(end[0], end[1])
     new_end, park_path, ensure_path1, ensure_path2 = park_path_planner.generate_park_scenario(int(start[0]),int(start[1]),int(end[0]),int(end[1]))
     
     print('routing to destination ...')
@@ -84,7 +78,6 @@ if __name__ == '__main__':
 
     final_path = np.vstack([interpolated_path, interpolated_park_path, ensure_path2])
 
-
     #############################################################################################
 
     ################################## control ##################################################
@@ -93,7 +86,7 @@ if __name__ == '__main__':
         
             acc, delta = controller.optimize(my_car, final_path[i:i+MPC_HORIZON])
             my_car.update_state(my_car.move(acc,  delta))
-            res = env.render(my_car.x, my_car.y, my_car.psi, delta, parking_slots)
+            res = env.render(my_car.x, my_car.y, my_car.psi, delta)
             logger.log(point, my_car, acc, delta)
             cv2.imshow('environment', res)
             key = cv2.waitKey(1)
@@ -101,7 +94,7 @@ if __name__ == '__main__':
                 cv2.imwrite('res.png', res*255)
 
     # zeroing car steer
-    res = env.render(my_car.x, my_car.y, my_car.psi, 0, parking_slots)
+    res = env.render(my_car.x, my_car.y, my_car.psi, 0)
     logger.save_data()
     cv2.imshow('environment', res)
     key = cv2.waitKey()
