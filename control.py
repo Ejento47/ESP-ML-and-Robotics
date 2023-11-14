@@ -22,8 +22,6 @@ class Car_Dynamics:
         return np.array([[x_dot, y_dot, v_dot, psi_dot]]).T #return the state vector as a 4x1 matrix
 
     def update_state(self, state_dot):
-        # self.u_k = command 
-        # self.z_k = state
         self.state = self.state + self.dt*state_dot #update the state vector with based on the changes with time
         self.x = self.state[0,0] #update the x position 
         self.y = self.state[1,0] #update the y position

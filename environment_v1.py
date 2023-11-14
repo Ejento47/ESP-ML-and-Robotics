@@ -28,8 +28,8 @@ class Environment:
 
         #height and width
         self.background = np.ones((1000+20*self.margin,1000+20*self.margin,3)) #creating background image of environment in white
-        self.background[10:1000+20*self.margin:10,:] = np.array([200,200,200])/255 #setting of gridlines by setting every 10th pixel to grey in x direction
-        self.background[:,10:1000+20*self.margin:10] = np.array([200,200,200])/255 #setting of gridlines by setting every 10th pixel to grey in y direction
+        # self.background[10:1000+20*self.margin:10,:] = np.array([200,200,200])/255 #setting of gridlines by setting every 10th pixel to grey in x direction
+        # self.background[:,10:1000+20*self.margin:10] = np.array([200,200,200])/255 #setting of gridlines by setting every 10th pixel to grey in y direction
         self.place_obstacles(obstacles)
                 
     def place_obstacles(self, obs):
@@ -89,29 +89,35 @@ class Environment:
 
 
 class Parking1:
-    def __init__(self, car_pos):
+    def __init__(self, car_pos,end):
         self.car_obstacle = self.make_car()
         self.walls = [[70,i] for i in range(-5,90) ]+\
                      [[30,i] for i in range(10,105)]+\
                      [[i,10] for i in range(30,36) ]+\
                      [[i,90] for i in range(70,76) ] #+ [[i,20] for i in range(-5,50)]
-        # self.walls = [0,100]
-        self.obs = np.array(self.walls)
+        self.car_obs = np.array(self.walls) #walls as obstacle (2d array) for what car knows
+        self.env_obs = np.array(self.walls) #obstacles for env to draw
         self.cars = {1 : [[35,20]], 2 : [[65,20]], 3 : [[75,20]], 4 : [[95,20]],
                      5 : [[35,32]], 6 : [[65,32]], 7 : [[75,32]], 8 : [[95,32]],
                      9 : [[35,44]], 10: [[65,44]], 11: [[75,44]], 12: [[95,44]],
                      13: [[35,56]], 14: [[65,56]], 15: [[75,56]], 16: [[95,56]],
                      17: [[35,68]], 18: [[65,68]], 19: [[75,68]], 20: [[95,68]],
                      21: [[35,80]], 22: [[65,80]], 23: [[75,80]], 24: [[95,80]]}
-        self.end = self.cars[car_pos][0]
-        self.cars.pop(car_pos)
+        if car_pos in self.cars.keys(): #if car pos is 0 - 23, self.end will have an end goal. Else, it will be original end location
+            # self.end = self.cars[car_pos][0]
+            self.cars.pop(car_pos)
+        self.end = end 
+        
 
     def generate_obstacles(self):
         for i in self.cars.keys():
             for j in range(len(self.cars[i])):
                 obstacle = self.car_obstacle + self.cars[i]
-                self.obs = np.append(self.obs, obstacle)
-        return self.end, np.array(self.obs).reshape(-1,2)
+                self.env_obs = np.append(self.env_obs, obstacle) #adding car obstacles to the environment
+        self.env_obs = np.array(self.env_obs).reshape(-1,2) #convert 1 column array to 2 column array
+        if self.end is not None:
+            return self.end, self.car_obs, self.env_obs 
+        return self.end, self.car_obs, self.env_obs
 
     def make_car(self):
         car_obstacle_x, car_obstacle_y = np.meshgrid(np.arange(-2,2), np.arange(-4,4))

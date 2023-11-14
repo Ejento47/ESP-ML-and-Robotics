@@ -227,9 +227,9 @@ class AStarPlanner:
 class PathPlanning:
     def __init__(self,obstacles):
         self.margin = 5 # this margin is for making sure the pathplanning is not too close to the obstacles
-        #sacale obstacles from env margin to pathplanning margin
+        #scale obstacles from env margin to pathplanning margin
         obstacles = obstacles + np.array([self.margin,self.margin])
-        obstacles = obstacles[(obstacles[:,0]>=0) & (obstacles[:,1]>=0)]
+        obstacles = obstacles[(obstacles[:,0]>=0) & (obstacles[:,1]>=0)] # remove negative coordinates
 
         self.obs = np.concatenate([np.array([[0,i] for i in range(100+self.margin)]),
                                   np.array([[100+2*self.margin,i] for i in range(100+2*self.margin)]),

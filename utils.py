@@ -105,5 +105,3 @@ class DataLogger:
         plt.grid()
         plt.legend(['car steer (degree)'], prop=font) # using a named size
         plt.savefig('log results/steer.png')
-
-        print('all data saved on log results ...')
