@@ -5,7 +5,7 @@ import argparse
 import random
 
 from environment import Environment, Parking1
-from pathplanning_ZS import PathPlanning, ParkPathPlanning, interpolate_path
+from pathplanning import PathPlanning, ParkPathPlanning, interpolate_path
 from control import Car_Dynamics, MPC_Controller, Linear_MPC_Controller
 from utils import angle_of_line, make_square, DataLogger
 
@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
     ########################## default variables ################################################
     start = np.array([args.x_start, args.y_start])
-    end   = np.array([args.x_end, args.y_end])
+    end   = np.array([90, 80])
     #############################################################################################
 
     # environment margin  : 5
@@ -61,6 +61,7 @@ if __name__ == '__main__':
     path_planner = PathPlanning(obs)
 
     print('planning park scenario ...')
+    print(end[0], end[1])
     new_end, park_path, ensure_path1, ensure_path2 = park_path_planner.generate_park_scenario(int(start[0]),int(start[1]),int(end[0]),int(end[1]))
     
     print('routing to destination ...')

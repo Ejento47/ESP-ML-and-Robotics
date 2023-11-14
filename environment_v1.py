@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import random
 
 class Environment:
     def __init__(self,obstacles):
@@ -28,9 +27,9 @@ class Environment:
                                       np.int32)
 
         #height and width
-        self.background = np.ones((1000+20*self.margin,1000+20*self.margin,3))
-        self.background[10:1000+20*self.margin:10,:] = np.array([200,200,200])/255
-        self.background[:,10:1000+20*self.margin:10] = np.array([200,200,200])/255
+        self.background = np.ones((1000+20*self.margin,1000+20*self.margin,3)) #creating background image of environment in white
+        self.background[10:1000+20*self.margin:10,:] = np.array([200,200,200])/255 #setting of gridlines by setting every 10th pixel to grey in x direction
+        self.background[:,10:1000+20*self.margin:10] = np.array([200,200,200])/255 #setting of gridlines by setting every 10th pixel to grey in y direction
         self.place_obstacles(obstacles)
                 
     def place_obstacles(self, obs):
@@ -92,79 +91,25 @@ class Environment:
 class Parking1:
     def __init__(self, car_pos):
         self.car_obstacle = self.make_car()
-        self.walls = self.generate_random_walls()
+        self.walls = [[70,i] for i in range(-5,90) ]+\
+                     [[30,i] for i in range(10,105)]+\
+                     [[i,10] for i in range(30,36) ]+\
+                     [[i,90] for i in range(70,76) ] #+ [[i,20] for i in range(-5,50)]
+        # self.walls = [0,100]
         self.obs = np.array(self.walls)
         self.cars = {1 : [[35,20]], 2 : [[65,20]], 3 : [[75,20]], 4 : [[95,20]],
                      5 : [[35,32]], 6 : [[65,32]], 7 : [[75,32]], 8 : [[95,32]],
                      9 : [[35,44]], 10: [[65,44]], 11: [[75,44]], 12: [[95,44]],
                      13: [[35,56]], 14: [[65,56]], 15: [[75,56]], 16: [[95,56]],
                      17: [[35,68]], 18: [[65,68]], 19: [[75,68]], 20: [[95,68]],
-                     21: [[35,80]], 22: [[65,80]], 23: [[75,80]], 24: [[95,80]]} ### random this
+                     21: [[35,80]], 22: [[65,80]], 23: [[75,80]], 24: [[95,80]]}
         self.end = self.cars[car_pos][0]
         self.cars.pop(car_pos)
-
-    def generate_random_walls(self):
-        walls = []
-
-        # Generate horizontal walls
-        for _ in range(2):  # Create 2 horizontal walls
-            start_x = random.randint(20, 50)
-            end_x = start_x + random.randint(30, 50)  # Random length between 30 and 80
-            walls.append([(start_x, 20), (end_x, 20)])
-
-        # Generate vertical walls
-        for _ in range(2):  # Create 2 vertical walls
-            start_y = random.randint(20, 50)
-            end_y = start_y + random.randint(30, 50)  # Random length between 30 and 80
-            walls.append([(65, start_y), (65, end_y)])
-
-        # Connect the walls to form continuous barriers
-        connected_walls = self.connect_walls(walls)
-
-        return connected_walls
-
-    def connect_walls(self, walls):
-        connected_walls = []
-        for wall in walls:
-            connected_walls.append(wall[0])  # Add the starting point of the current wall
-            connected_walls += self.draw_line(wall[0], wall[1])  # Connect the points with a line
-        return connected_walls
-
-    def draw_line(self, start, end):
-        x1, y1 = start
-        x2, y2 = end
-        points = []
-        is_steep = abs(y2 - y1) > abs(x2 - x1)
-        if is_steep:
-            x1, y1 = y1, x1
-            x2, y2 = y2, x2
-        if x1 > x2:
-            x1, x2 = x2, x1
-            y1, y2 = y2, y1
-        deltax = x2 - x1
-        deltay = abs(y2 - y1)
-        error = deltax / 2
-        y = y1
-        ystep = None
-        if y1 < y2:
-            ystep = 1
-        else:
-            ystep = -1
-        for x in range(x1, x2 + 1):
-            if is_steep:
-                points.append((y, x))
-            else:
-                points.append((x, y))
-            error -= deltay
-            if error < 0:
-                y += ystep
-                error += deltax
-        return points
 
     def generate_obstacles(self):
         for i in self.cars.keys():
             for j in range(len(self.cars[i])):
-                obstacle = self.car_obstacle + self.cars[i] + 1
+                obstacle = self.car_obstacle + self.cars[i]
                 self.obs = np.append(self.obs, obstacle)
         return self.end, np.array(self.obs).reshape(-1,2)
 
@@ -172,4 +117,3 @@ class Parking1:
         car_obstacle_x, car_obstacle_y = np.meshgrid(np.arange(-2,2), np.arange(-4,4))
         car_obstacle = np.dstack([car_obstacle_x, car_obstacle_y]).reshape(-1,2)
         return car_obstacle
-
