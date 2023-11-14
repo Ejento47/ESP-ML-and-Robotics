@@ -61,6 +61,13 @@ if __name__ == '__main__':
     #############################################################################################
     '''
     Need to implement a code here to replace the whole part below to make the entire path planning an iterative process and to make use of the control in this process.
+
+    Things to update
+    - Obstacles
+    - Parking Slots
+    - Nearest Parking Slots
+    - PathPlanning
+    - ParkPathPlanning
     '''
 
     ############################# path planning #################################################

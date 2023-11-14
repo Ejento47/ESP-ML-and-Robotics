@@ -53,8 +53,22 @@ class Environment:
         R = np.array([[np.cos(angle), -np.sin(angle)],
                     [np.sin(angle),  np.cos(angle)]])
         return ((R @ pts.T).T).astype(int)
+    
+    def draw_parking_slots(self, parking_slots):
+        slot_width = 44  # car width is 40, plus 2 units on each side for the parking slot
+        slot_length = 84  # car length is 80, plus 2 units on each side for the parking slot
+        half_slot_width = slot_width // 2
+        half_slot_length = slot_length // 2
+        slot_color = (0, 255, 0)  # green color for the parking slot
+        thickness = 2 
 
-    def render(self, x, y, psi, delta):
+        for center in parking_slots:
+            center_x, center_y = center
+            top_left = (int((center_x - half_slot_width) * 3), int((center_y - half_slot_length) * 3))
+            bottom_right = (int((center_x + half_slot_width) * 3), int((center_y + half_slot_length) * 3))
+            self.background = cv2.rectangle(self.background, top_left, bottom_right, color=slot_color, thickness=thickness)
+
+    def render(self, x, y, psi, delta, parking_slots):
         # x,y in 100 coordinates
         x = int(10*x)
         y = int(10*y)
@@ -84,8 +98,11 @@ class Environment:
 
         new_center = np.array([x,y]) + np.array([10*self.margin,10*self.margin])
         self.background = cv2.circle(self.background, (new_center[0],new_center[1]), 2, [255/255, 150/255, 100/255], -1)
+        # Draw parking slots
+        self.draw_parking_slots(parking_slots)
 
         rendered = cv2.resize(np.flip(rendered, axis=0), (700,700))
+
         return rendered
 
 
@@ -114,23 +131,34 @@ class Parking1:
 
     def define_parking_slots(self):
         # Define parking slots along the walls
-        parking_slots = []
-        # Example: Add parking slots along a specific wall
-        for i in range(20, 80, 10):  # Adjust ranges as needed
-            parking_slots.append([35, i])  # Adjust coordinates as needed
-            parking_slots.append([65, i])  # Repeat for other walls as needed
-        # ... Add more parking slots along other walls
+
+        parking_slots = [[35, 20], [65, 20], [75, 20], [95, 20], 
+        [35, 32], [65, 32], [75, 32], [95, 32], 
+        [35, 44], [65, 44], [75, 44], [95, 44], 
+        [35, 56], [65, 56], [75, 56], [95, 56], 
+        [35, 68], [65, 68], [75, 68], [95, 68], 
+        [35, 80], [65, 80], [75, 80], [95, 80]]
+
         return parking_slots
+    
+    def get_parking_slots(self):
+        # Return the list of parking slots
+        return self.parking_slots  # If parking_slots is an attribute containing this info
 
     def randomly_place_cars(self):
         # Randomly place cars in the defined parking slots
         cars = {}
-        available_slots = self.parking_slots.copy()
+        available_slots = self.parking_slots.copy()  # Ensure this is a list
+
+        # Make sure available_slots is a list before this point
+        if not available_slots:
+            raise ValueError("No available parking slots to place cars.")
+
         num_cars = random.randint(0, len(available_slots) - 1)
         for i in range(1, num_cars + 1):
             chosen_slot = random.choice(available_slots)
             cars[i] = [chosen_slot]
-            available_slots.remove(chosen_slot)
+            available_slots.remove(chosen_slot)  # This should work if available_slots is a list
         return cars
 
     def generate_obstacles(self):

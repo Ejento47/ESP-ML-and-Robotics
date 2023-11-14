@@ -51,17 +51,10 @@ if __name__ == '__main__':
     controller = MPC_Controller()
     # controller = Linear_MPC_Controller()
 
-    parking_slots = parking1.get_parking_slots()  # Assuming you have such a method
-
-    # Then, when calling render, pass parking_slots
-    res = env.render(my_car.x, my_car.y, my_car.psi, 0, parking_slots)    
-
+    res = env.render(my_car.x, my_car.y, my_car.psi, 0)
     cv2.imshow('environment', res)
     key = cv2.waitKey(1)
     #############################################################################################
-    '''
-    Need to implement a code here to replace the whole part below to make the entire path planning an iterative process and to make use of the control in this process.
-    '''
 
     ############################# path planning #################################################
     park_path_planner = ParkPathPlanning(obs)
@@ -84,7 +77,6 @@ if __name__ == '__main__':
 
     final_path = np.vstack([interpolated_path, interpolated_park_path, ensure_path2])
 
-
     #############################################################################################
 
     ################################## control ##################################################
@@ -93,7 +85,7 @@ if __name__ == '__main__':
         
             acc, delta = controller.optimize(my_car, final_path[i:i+MPC_HORIZON])
             my_car.update_state(my_car.move(acc,  delta))
-            res = env.render(my_car.x, my_car.y, my_car.psi, delta, parking_slots)
+            res = env.render(my_car.x, my_car.y, my_car.psi, delta)
             logger.log(point, my_car, acc, delta)
             cv2.imshow('environment', res)
             key = cv2.waitKey(1)
@@ -101,7 +93,7 @@ if __name__ == '__main__':
                 cv2.imwrite('res.png', res*255)
 
     # zeroing car steer
-    res = env.render(my_car.x, my_car.y, my_car.psi, 0, parking_slots)
+    res = env.render(my_car.x, my_car.y, my_car.psi, 0)
     logger.save_data()
     cv2.imshow('environment', res)
     key = cv2.waitKey()
