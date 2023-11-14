@@ -2,7 +2,7 @@ import numpy as np
 import math
 import scipy.interpolate as scipy_interpolate
 from utils import angle_of_line
-
+from control_v2 import Car_Dynamics, MPC_Controller, Linear_MPC_Controller
 
 ############################################## Functions ######################################################
 
@@ -89,7 +89,7 @@ class AStarPlanner:
 
             c_id = min(
                 open_set,
-                key=lambda o: open_set[o].cost + self.calc_heuristic(goal_node,
+                key=lambda o: open_set[o].cost + self.manhattan_heuristic(goal_node,
                                                                      open_set[
                                                                          o]))
             current = open_set[c_id]
@@ -144,8 +144,13 @@ class AStarPlanner:
 
         return rx, ry
 
-    @staticmethod
-    def calc_heuristic(n1, n2):
+     # @staticmethod
+    def manhattan_heuristic(self,n1, n2):
+        w = 1.0  # weight of heuristic
+        d = w * (abs(n1.x - n2.x) + abs(n1.y - n2.y))
+        return d      
+
+    def eucliean_heuristic(self,n1, n2):
         w = 1.0  # weight of heuristic
         d = w * math.hypot(n1.x - n2.x, n1.y - n2.y)
         return d
@@ -227,9 +232,11 @@ class AStarPlanner:
 class PathPlanning:
     def __init__(self,obstacles):
         self.margin = 5 # this margin is for making sure the pathplanning is not too close to the obstacles
-        #sacale obstacles from env margin to pathplanning margin
+        #scale obstacles from env margin to pathplanning margin
+        if obstacles.size == 0:
+            obstacles = np.empty((0, 2))        
         obstacles = obstacles + np.array([self.margin,self.margin])
-        obstacles = obstacles[(obstacles[:,0]>=0) & (obstacles[:,1]>=0)]
+        obstacles = obstacles[(obstacles[:,0]>=0) & (obstacles[:,1]>=0)] # remove negative coordinates
 
         self.obs = np.concatenate([np.array([[0,i] for i in range(100+self.margin)]),
                                   np.array([[100+2*self.margin,i] for i in range(100+2*self.margin)]),
@@ -272,69 +279,56 @@ class ParkPathPlanning:
         self.a_star = AStarPlanner(self.ox, self.oy, self.grid_size, self.robot_radius)
 
     def generate_park_scenario(self,sx, sy, gx, gy):    
-        default_end = [90, 90]
-        default_park_path = []
-        default_ensure_path1 = []
-        default_ensure_path2 = []
+        rx, ry = self.a_star.planning(sx+self.margin, sy+self.margin, gx+self.margin, gy+self.margin)
+        rx = np.array(rx)-self.margin+0.5
+        ry = np.array(ry)-self.margin+0.5
+        path = np.vstack([rx,ry]).T
+        path = path[::-1]
+        computed_angle = angle_of_line(path[-10][0],path[-10][1],path[-1][0],path[-1][1])
 
-        try:
-            rx, ry = self.a_star.planning(sx+self.margin, sy+self.margin, gx+self.margin, gy+self.margin)
-            if rx is None or ry is None:
-                raise Exception("Path planning returned None")
-            rx = np.array(rx)-self.margin+0.5
-            ry = np.array(ry)-self.margin+0.5
-            path = np.vstack([rx,ry]).T
-            path = path[::-1]
-            computed_angle = angle_of_line(path[-10][0],path[-10][1],path[-1][0],path[-1][1])
+        s = 4
+        l = 8
+        d = 2
+        w = 4
 
-            s = 4
-            l = 8
-            d = 2
-            w = 4
+        if -math.atan2(0,-1) < computed_angle <= math.atan2(-1,0):
+            x_ensure2 = gx
+            y_ensure2 = gy
+            x_ensure1 = x_ensure2 + d + w
+            y_ensure1 = y_ensure2 - l - s
+            ensure_path1 = np.vstack([np.repeat(x_ensure1,3/0.25), np.arange(y_ensure1-3,y_ensure1,0.25)[::-1]]).T
+            ensure_path2 = np.vstack([np.repeat(x_ensure2,3/0.25), np.arange(y_ensure2,y_ensure2+3,0.25)[::-1]]).T
+            park_path = self.plan_park_down_right(x_ensure2, y_ensure2)
 
-            if -math.atan2(0,-1) < computed_angle <= math.atan2(-1,0):
-                x_ensure2 = gx
-                y_ensure2 = gy
-                x_ensure1 = x_ensure2 + d + w
-                y_ensure1 = y_ensure2 - l - s
-                ensure_path1 = np.vstack([np.repeat(x_ensure1,3/0.25), np.arange(y_ensure1-3,y_ensure1,0.25)[::-1]]).T
-                ensure_path2 = np.vstack([np.repeat(x_ensure2,3/0.25), np.arange(y_ensure2,y_ensure2+3,0.25)[::-1]]).T
-                park_path = self.plan_park_down_right(x_ensure2, y_ensure2)
+        elif math.atan2(-1,0) <= computed_angle <= math.atan2(0,1):
+            x_ensure2 = gx
+            y_ensure2 = gy
+            x_ensure1 = x_ensure2 - d - w
+            y_ensure1 = y_ensure2 - l - s 
+            ensure_path1 = np.vstack([np.repeat(x_ensure1,3/0.25), np.arange(y_ensure1-3,y_ensure1,0.25)[::-1]]).T
+            ensure_path2 = np.vstack([np.repeat(x_ensure2,3/0.25), np.arange(y_ensure2,y_ensure2+3,0.25)[::-1]]).T
+            park_path = self.plan_park_down_left(x_ensure2, y_ensure2)
 
-            elif math.atan2(-1,0) <= computed_angle <= math.atan2(0,1):
-                x_ensure2 = gx
-                y_ensure2 = gy
-                x_ensure1 = x_ensure2 - d - w
-                y_ensure1 = y_ensure2 - l - s 
-                ensure_path1 = np.vstack([np.repeat(x_ensure1,3/0.25), np.arange(y_ensure1-3,y_ensure1,0.25)[::-1]]).T
-                ensure_path2 = np.vstack([np.repeat(x_ensure2,3/0.25), np.arange(y_ensure2,y_ensure2+3,0.25)[::-1]]).T
-                park_path = self.plan_park_down_left(x_ensure2, y_ensure2)
+        elif math.atan2(0,1) < computed_angle <= math.atan2(1,0):
+            x_ensure2 = gx
+            y_ensure2 = gy
+            x_ensure1 = x_ensure2 - d - w
+            y_ensure1 = y_ensure2 + l + s
+            ensure_path1 = np.vstack([np.repeat(x_ensure1,3/0.25), np.arange(y_ensure1,y_ensure1+3,0.25)]).T
+            ensure_path2 = np.vstack([np.repeat(x_ensure2,3/0.25), np.arange(y_ensure2-3,y_ensure2,0.25)]).T
+            park_path = self.plan_park_up_left(x_ensure2, y_ensure2)
 
-            elif math.atan2(0,1) < computed_angle <= math.atan2(1,0):
-                x_ensure2 = gx
-                y_ensure2 = gy
-                x_ensure1 = x_ensure2 - d - w
-                y_ensure1 = y_ensure2 + l + s
-                ensure_path1 = np.vstack([np.repeat(x_ensure1,3/0.25), np.arange(y_ensure1,y_ensure1+3,0.25)]).T
-                ensure_path2 = np.vstack([np.repeat(x_ensure2,3/0.25), np.arange(y_ensure2-3,y_ensure2,0.25)]).T
-                park_path = self.plan_park_up_left(x_ensure2, y_ensure2)
+        elif math.atan2(1,0) < computed_angle <= math.atan2(0,-1):
+            x_ensure2 = gx
+            y_ensure2 = gy
+            x_ensure1 = x_ensure2 + d + w
+            y_ensure1 = y_ensure2 + l + s
+            ensure_path1 = np.vstack([np.repeat(x_ensure1,3/0.25), np.arange(y_ensure1,y_ensure1+3,0.25)]).T
+            ensure_path2 = np.vstack([np.repeat(x_ensure2,3/0.25), np.arange(y_ensure2-3,y_ensure2,0.25)]).T
+            park_path = self.plan_park_up_right(x_ensure2, y_ensure2)
 
-            elif math.atan2(1,0) < computed_angle <= math.atan2(0,-1):
-                x_ensure2 = gx
-                y_ensure2 = gy
-                x_ensure1 = x_ensure2 + d + w
-                y_ensure1 = y_ensure2 + l + s
-                ensure_path1 = np.vstack([np.repeat(x_ensure1,3/0.25), np.arange(y_ensure1,y_ensure1+3,0.25)]).T
-                ensure_path2 = np.vstack([np.repeat(x_ensure2,3/0.25), np.arange(y_ensure2-3,y_ensure2,0.25)]).T
-                park_path = self.plan_park_up_right(x_ensure2, y_ensure2)
-                
-            if park_path and ensure_path1 and ensure_path2:
-                return new_end, park_path, ensure_path1, ensure_path2
+        return np.array([x_ensure1, y_ensure1]), park_path, ensure_path1, ensure_path2
 
-        except Exception as e:
-            print(f"Path planning failed: {e}")
-
-        return default_end, default_park_path, default_ensure_path1, default_ensure_path2
 
     def plan_park_up_right(self, x1, y1):       
             s = 4
