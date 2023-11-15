@@ -96,7 +96,7 @@ class Parking1:
                      [[30,i] for i in range(10,105)]+\
                      [[i,10] for i in range(30,36) ]+\
                      [[i,90] for i in range(70,76) ] #+ [[i,20] for i in range(-5,50)]
-        self.car_obs = np.empty((0, 2))  #create an obstacle
+        self.car_obs = nonlocalp.array(self.walls)  #create an obstacle
         self.env_obs = np.array(self.walls) #obstacles for env to draw
         self.cars = {1 : [[35,20]], 2 : [[65,20]], 3 : [[75,20]], 4 : [[95,20]],
                      5 : [[35,32]], 6 : [[65,32]], 7 : [[75,32]], 8 : [[95,32]],
@@ -127,7 +127,7 @@ class Parking1:
         """
         # Call the sensor data function to get new obstacles
         
-        new_obstacles = Car_Dynamics.detect_obstacles(car_pos, car_orientation, environment, max_distance=20, fov_deg=120)
+        new_obstacles = Car_Dy.detect_obstacles(car_pos, car_orientation, environment, max_distance=20, fov_deg=120)
         for obstacle in new_obstacles:
             if obstacle not in self.car_obs:
                 self.car_obs.append(obstacle)

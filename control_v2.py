@@ -64,7 +64,7 @@ class Car_Dynamics:
 
         return global_x, global_y
 
-    def detect_obstacles_and_spaces(self, car_pos, car_orientation, environment, max_distance=20, fov_deg=120):
+    def detect_obstacles_and_spaces(self, car_pos, car_orientation, environment, obstacles, empty_spaces, max_distance=100, fov_deg=120):
         """
         Detects obstacles within the field of view of the car and identifies empty spaces.
 
@@ -77,8 +77,6 @@ class Car_Dynamics:
                 - List of tuples with (distance, angle) for each detected obstacle.
                 - List of tuples with (distance, angle) for each detected empty space.
         """
-        obstacles = []
-        empty_spaces = []
         car_x, car_y = car_pos
 
         # Convert car orientation to radians and calculate FOV boundaries
@@ -86,25 +84,26 @@ class Car_Dynamics:
         fov_start = car_orientation_rad - math.radians(fov_deg / 2)
         fov_end = car_orientation_rad + math.radians(fov_deg / 2)
         
-        # Iterate through each cell in the environment
-        for y in range(len(environment)):
-            for x in range(len(environment[y])):
-                obstacle_pos = (x, y)
-                rel_x, rel_y = obstacle_pos[0] - car_x, obstacle_pos[1] - car_y
-                distance = math.sqrt(rel_x**2 + rel_y**2)
-                angle = math.atan2(rel_y, rel_x)
+        # Iterate through each cell in the environment, where environment in this case will probably be called as Environment.background
+        for y in range(car_y-20,car_y+100):
+            for x in range(car_x-20,car_y+100):
+                if x>=0 and y>=0:
+                    obstacle_pos = (x, y)
+                    rel_x, rel_y = obstacle_pos[0] - car_x, obstacle_pos[1] - car_y
+                    distance = math.sqrt(rel_x**2 + rel_y**2)
+                    angle = math.atan2(rel_y, rel_x)
 
-                # Check if the point is within the sensor's FOV and within the max distance
-                if distance <= max_distance and fov_start <= angle <= fov_end:
-                    # Normalize the angle
-                    rel_angle = math.degrees(angle - car_orientation_rad)
-                    # Check if the point is an obstacle or empty space
-                    if environment[y][x] == 1:  # Obstacle detected
-                        obstacles.append((distance, rel_angle))
-                    elif environment[y][x] == 0:  # Empty space detected
-                        empty_spaces.append((distance, rel_angle))
+                    # Check if the point is within the sensor's FOV and within the max distance
+                    if distance <= max_distance and fov_start <= angle <= fov_end:
+                        # Normalize the angle
+                        rel_angle = math.degrees(angle - car_orientation_rad)
+                        # Check if the point is an obstacle or empty space
+                        if environment[y][x] == [0,0,0]:  # Obstacle detected
+                            obstacles.append((distance, rel_angle))
+                        elif environment[y][x] == [1,1,1]:  # Empty space detected
+                            empty_spaces.append((distance, rel_angle))
 
-        return obstacles, empty_spaces
+            return obstacles, empty_spaces
     
     def find_key_by_value(self, dictionary, target_value):
         for key, value in dictionary.items():
@@ -112,16 +111,15 @@ class Car_Dynamics:
                 return key
         return None
     
-    def detect_empty_parking(self,car_positions, parking_slots empty_spaces):
+    def detect_empty_parking(self, car_positions, parking_slots, empty_spaces):
         #car_positions = Parking1.cars.values()  # Accessing cars attribute
         #parking_slots = Parking1.parking_slots  # Accessing parking_slots attribute
         
         for car in car_positions:
             if car in empty_spaces:
-                slot_number = self.find_key_by_value(parking1_instance.cars, car)
+                slot_number = self.find_key_by_value(parking_slots, car)
                 if slot_number is not None:
                     parking_slots[slot_number] = False
-                
                 
 
 #To optimise steering based off wheere you want to go    

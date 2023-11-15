@@ -88,6 +88,7 @@ if __name__ == '__main__':
             
             acc, delta = controller.optimize(my_car, final_path[i:i+MPC_HORIZON])
             my_car.update_state(my_car.move(acc,  delta))
+            
             #sensor update
             res = env.render(my_car.x, my_car.y, my_car.psi, delta)
             logger.log(point, my_car, acc, delta)
