@@ -117,7 +117,22 @@ class Parking1:
             self.cars.pop(car_pos)
         # else:
             self.end =  end
+
+    def discover_obstacles(self,car_pos,car_orientation,environment):
+        """
+        Updates the car_obstacle array with new sensor data.
         
+        :param sensor_data_function: A function from the control system that returns obstacle coordinates.
+        :return: Updated array of obstacles.
+        """
+        # Call the sensor data function to get new obstacles
+        
+        new_obstacles = Car_Dynamics.detect_obstacles(car_pos, car_orientation, environment, max_distance=20, fov_deg=120)
+        for obstacle in new_obstacles:
+            if obstacle not in self.car_obs:
+                self.car_obs.append(obstacle)
+        print(self.car_obs)
+        return self.car_obs        
 
     def generate_obstacles(self):
         for i in self.cars.keys():
@@ -134,18 +149,3 @@ class Parking1:
         car_obstacle = np.dstack([car_obstacle_x, car_obstacle_y]).reshape(-1,2)
         return car_obstacle
     
-    def discover_obstacles(self,car_pos,car_orientation, environment):
-        """
-        Updates the car_obstacle array with new sensor data.
-        
-        :param sensor_data_function: A function from the control system that returns obstacle coordinates.
-        :return: Updated array of obstacles.
-        """
-        # Call the sensor data function to get new obstacles
-        
-        new_obstacles = control_v2.detect_obstacles(car_pos, car_orientation, environment, max_distance=20, fov_deg=120)
-        for obstacle in new_obstacles:
-            if obstacle not in self.car_obs:
-                self.car_obs.append(obstacle)
-        print(self.car_obs)
-        return self.car_obs

@@ -2,6 +2,7 @@ import numpy as np
 from scipy.optimize import minimize
 import copy
 import math
+from environment_v2 import Environment, Parking1
 
 
 class Car_Dynamics:
@@ -63,7 +64,7 @@ class Car_Dynamics:
 
         return global_x, global_y
 
-    def detect_obstacles_and_spaces(car_pos, car_orientation, environment, max_distance=20, fov_deg=120):
+    def detect_obstacles_and_spaces(self, car_pos, car_orientation, environment, max_distance=20, fov_deg=120):
         """
         Detects obstacles within the field of view of the car and identifies empty spaces.
 
@@ -105,25 +106,23 @@ class Car_Dynamics:
 
         return obstacles, empty_spaces
     
-    def discover_obstacles(self,car_pos,car_orientation, environment):
-        """
-        Updates the car_obstacle array with new sensor data.
+    def find_key_by_value(self, dictionary, target_value):
+        for key, value in dictionary.items():
+            if value == target_value:
+                return key
+        return None
+    
+    def detect_empty_parking(self,car_positions, parking_slots empty_spaces):
+        #car_positions = Parking1.cars.values()  # Accessing cars attribute
+        #parking_slots = Parking1.parking_slots  # Accessing parking_slots attribute
         
-        :param sensor_data_function: A function from the control system that returns obstacle coordinates.
-        :return: Updated array of obstacles.
-        """
-        # Call the sensor data function to get new obstacles
-        
-        new_obstacles = self.detect_obstacles(car_pos, car_orientation, environment, max_distance=20, fov_deg=120)
-        for obstacle in new_obstacles:
-            if obstacle not in self.car_obs:
-                self.car_obs.append(obstacle)
-        print(self.car_obs)
-        return self.car_obs
-        
-    def detect_empty_parking(self,obstacles):#check whether I detected an obstacle in the parking lot area, if there is then I will reflect False
-        for obstacle in obstacles:
-            if 
+        for car in car_positions:
+            if car in empty_spaces:
+                slot_number = self.find_key_by_value(parking1_instance.cars, car)
+                if slot_number is not None:
+                    parking_slots[slot_number] = False
+                
+                
 
 #To optimise steering based off wheere you want to go    
 class MPC_Controller:
