@@ -16,7 +16,7 @@ if __name__ == '__main__':
     parser.add_argument('--psi_start', type=int, default=0, help='psi of start')
     # # parser.add_argument('--x_end', type=int, default=90, help='X of end') #to be removed since hard-coded
     # # parser.add_argument('--y_end', type=int, default=80, help='Y of end') #to be removed since hard-coded
-    # parser.add_argument('--parking', type=int, default=1, help='park position in parking1 out of 24') #to remvoe since parking slot randomized
+    parser.add_argument('--parking', type=int, default=1, help='park position in parking 1 out of 24 or <0 to have no empty slots') #to remvoe since parking slot randomized
 
     args = parser.parse_args()
     logger = DataLogger()
@@ -30,8 +30,9 @@ if __name__ == '__main__':
     # pathplanning margin : 5
 
     ########################## defining obstacles ###############################################
-    random_emptyslot = np.random.randint(-10,24)
-    parking1 = Parking1(24,original_end) # random parking slot selection ## of can be args.parking
+    # park_slot = args.parking
+    # park_slot = np.random.randint(-10,24)
+    parking1 = Parking1(10,original_end) # random parking slot selection ## of can be args.parking
     end,car_obs,env_obs = parking1.generate_obstacles() #car_obs is what car can see and env_obs is what see
 
 
@@ -65,9 +66,12 @@ if __name__ == '__main__':
     print('routing to end of carpark ...') 
     path = path_planner.plan_path(int(start[0]),int(start[1]),int(original_end[0]),int(original_end[1])) #path planning
     env.draw_path(path)
-    ################################## Travel to Original Goal ##################################################
+    ################################## Travel to original goal or empty parking slot ##################################################
     can_park = False #boolean to check if car can park
-    obstacle_found = False #boolean to check if obstacle is found
+    parkIsAstar = True
+    obstacle_found = False #boolean to check if obstacle is 
+    # end = [] #to store the parking slot location
+    current_pos = [] #to store the current position of the car
     counter = 0 #counter to check if car can park
     print('driving to destination ...')
     
@@ -78,28 +82,50 @@ if __name__ == '__main__':
         acc, delta = controller.optimize(my_car, path[:MPC_HORIZON]) #get acc and delta from controller of the first 5 points in path
         my_car.update_state(my_car.move(acc,  delta)) #update car state
         res = env.render(my_car.x, my_car.y, my_car.psi, delta) #render environment of the car 
-        logger.log(path[0], my_car, acc, delta) #log the data of car
+        logger.log(path[0], my_car, acc, delta) #log the data of current car state
         cv2.imshow('environment', res) #show the environment of car
         key = cv2.waitKey(1) 
+        
+        #if path has reached end of orinal end
         if path[0][0] -0.5 == original_end[0] and path[0][1] -0.5 == original_end[1]:
             print('~ No parking slots found, driver to take over ~')
             break
         
-        #TEWSITNTSNT SFWSDSDWEER
-        if counter > 150: ###TESTTTT NEEDD TO BE REPLACED WHEN CAN PARK IS TRUE
-            can_park = True #set can_park to true
-            current_pos = path[0]           
-            path = [] #clear path array
-            path = path_planner.plan_path(int(current_pos[0]),int(current_pos[1]),int(end[0]),int(end[1])) #path planning
-            env.draw_path(path)
+        #Eerouting to empty parking slot using A* path planning as parking
+        if counter > 100: ###TESTTTT NEEDD TO BE REPLACED WHEN CAN PARK IS TRUE
+            print('rerouting to empty parking slot ...')
+            if parkIsAstar: #using A* path planning to park car
+                current_pos = path[0] #get current position of car
+                # end = end #replace new end with empty parking slot
+                break
+            else: #using Q learning to park car
+                current_pos = path[0]
+                # end = end #replace new end with empty parking slot
+                break
+        if key == ord('s'):  #to save the imagee
+            cv2.imwrite('res.png', res*255)
             
         path = path[1:] #remove the first point in path
         counter += 1
-        
-        if key == ord('s'):  #to save the imagee
-            cv2.imwrite('res.png', res*255)
 
-    
+    ################################## Parking of car ##################################################
+    if parkIsAstar: #if  park to be done using A star is true
+        new_end, park_path, ensure_path1, ensure_path2 = path_planner.replan_park(int(current_pos[0]),int(current_pos[1]),int(end[0]),int(end[1]))
+        path = path_planner.plan_path(int(current_pos[0]),int(current_pos[1]),int(new_end[0]),int(new_end[1]))
+        path = np.vstack([path, ensure_path1])
+        env.draw_path(path)
+        env.draw_path(park_path)
+        final_path = np.vstack([path, park_path, ensure_path2])
+        for i,point in enumerate(final_path):
+            acc, delta = controller.optimize(my_car, final_path[i:i+MPC_HORIZON])
+            my_car.update_state(my_car.move(acc,  delta))
+            res = env.render(my_car.x, my_car.y, my_car.psi, delta)
+            logger.log(point, my_car, acc, delta)
+            cv2.imshow('environment', res)
+            key = cv2.waitKey(1)
+            if key == ord('s'):
+                cv2.imwrite('res.png', res*255)
+
     # zeroing car steer
     res = env.render(my_car.x, my_car.y, my_car.psi, 0)
     logger.save_data()

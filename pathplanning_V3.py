@@ -256,65 +256,8 @@ class ParkPathPlanning:
         path = np.vstack([rx,ry]).T #transpose to [x,y] format
         return path[::-1] #return path in reverse order
 
-    # def update_q_table(self, state, action, reward, next_state):
-    #     alpha = 0.5  # learning rate
-    #     gamma = 0.9  # discount factor
-    #     self.q_table[state[0], state[1], action] = (1 - alpha) * self.q_table[state[0], state[1], action] + \
-    #                                                 alpha * (reward + gamma * np.max(self.q_table[next_state[0], next_state[1], :]))
-
-    # def get_action(self, state, epsilon):
-    #     if np.random.uniform(0, 1) < epsilon:
-    #         action = np.random.choice(4)  # Explore: select a random action
-    #     else:
-    #         action = np.argmax(self.q_table[state[0], state[1], :])  # Exploit: select the action with max value (Q) for the current state
-    #     return action
-
-    # def generate_park_scenario(self, sx, sy, gx, gy):
-    #     # Initialize parameters
-    #     epsilon = 0.3  # Exploration rate
-    #     num_episodes = 10000  # Number of episodes to train over
-
-    #     # Initialize state
-    #     state = [sx, sy]
-
-    #     for episode in range(num_episodes):
-    #         # Reset state at start of each episode
-    #         state = [sx, sy]
-
-    #         while state != [gx, gy]:  # While goal state not reached
-    #             # Choose action
-    #             action = self.get_action(state, epsilon)
-
-    #             # Take action and get reward, transit to next state
-    #             next_state, reward = self.take_action(state, action)
-
-    #             # Update Q-table
-    #             self.update_q_table(state, action, reward, next_state)
-
-    #             # Go to the next state
-    #             state = next_state
-
-    #     # After training, generate the optimal path
-    #     state = [sx, sy]
-    #     path = []
-
-    #     while state != [gx, gy]:
-    #         # Choose the best action
-    #         action = np.argmax(self.q_table[state[0], state[1], :])
-
-    #         # Take action and transit to next state
-    #         next_state, _ = self.take_action(state, action)
-
-    #         # Add state to path
-    #         path.append(state)
-
-    #         # Go to the next state
-    #         state = next_state
-
-    #     return path
-
     #### PARKING SCENARIO BY EXISITING CODEBASE ####
-    def generate_park_scenario(self,sx, sy, gx, gy):    
+    def replan_park(self,sx, sy, gx, gy):    
         rx, ry = self.a_star.planning(sx+self.margin, sy+self.margin, gx+self.margin, gy+self.margin)
         rx = np.array(rx)-self.margin+0.5
         ry = np.array(ry)-self.margin+0.5
@@ -508,3 +451,60 @@ class ParkPathPlanning:
             
             park_path = np.vstack([curve_x, curve_y]).T
             return park_path
+        
+            # def update_q_table(self, state, action, reward, next_state):
+    #     alpha = 0.5  # learning rate
+    #     gamma = 0.9  # discount factor
+    #     self.q_table[state[0], state[1], action] = (1 - alpha) * self.q_table[state[0], state[1], action] + \
+    #                                                 alpha * (reward + gamma * np.max(self.q_table[next_state[0], next_state[1], :]))
+
+    # def get_action(self, state, epsilon):
+    #     if np.random.uniform(0, 1) < epsilon:
+    #         action = np.random.choice(4)  # Explore: select a random action
+    #     else:
+    #         action = np.argmax(self.q_table[state[0], state[1], :])  # Exploit: select the action with max value (Q) for the current state
+    #     return action
+
+    # def generate_park_scenario(self, sx, sy, gx, gy):
+    #     # Initialize parameters
+    #     epsilon = 0.3  # Exploration rate
+    #     num_episodes = 10000  # Number of episodes to train over
+
+    #     # Initialize state
+    #     state = [sx, sy]
+
+    #     for episode in range(num_episodes):
+    #         # Reset state at start of each episode
+    #         state = [sx, sy]
+
+    #         while state != [gx, gy]:  # While goal state not reached
+    #             # Choose action
+    #             action = self.get_action(state, epsilon)
+
+    #             # Take action and get reward, transit to next state
+    #             next_state, reward = self.take_action(state, action)
+
+    #             # Update Q-table
+    #             self.update_q_table(state, action, reward, next_state)
+
+    #             # Go to the next state
+    #             state = next_state
+
+    #     # After training, generate the optimal path
+    #     state = [sx, sy]
+    #     path = []
+
+    #     while state != [gx, gy]:
+    #         # Choose the best action
+    #         action = np.argmax(self.q_table[state[0], state[1], :])
+
+    #         # Take action and transit to next state
+    #         next_state, _ = self.take_action(state, action)
+
+    #         # Add state to path
+    #         path.append(state)
+
+    #         # Go to the next state
+    #         state = next_state
+
+    #     return path
