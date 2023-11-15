@@ -147,5 +147,5 @@ class Parking1:
         for obstacle in new_obstacles:
             if obstacle not in self.car_obs:
                 self.car_obs.append(obstacle)
-        print
+        print(self.car_obs)
         return self.car_obs

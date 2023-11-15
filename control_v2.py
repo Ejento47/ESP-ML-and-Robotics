@@ -63,18 +63,21 @@ class Car_Dynamics:
 
         return global_x, global_y
 
-    def detect_obstacles(car_pos, car_orientation, environment, max_distance=20, fov_deg=120):
+    def detect_obstacles_and_spaces(car_pos, car_orientation, environment, max_distance=20, fov_deg=120):
         """
-        Detects obstacles within the field of view of the car.
+        Detects obstacles within the field of view of the car and identifies empty spaces.
 
         :param car_pos: Tuple (x, y) representing the car's position.
-        :param car_orientation: Car's orientation in degrees (0 degrees is east, 90 is north).
+        :param car_orientation: Car's orientation in degrees.
         :param environment: 2D list or array representing the environment, where obstacles are marked.
         :param max_distance: Maximum distance the sensor can detect.
         :param fov_deg: Field of view in degrees.
-        :return: List of tuples with (distance, angle) for each detected obstacle.
+        :return: Tuple of two lists:
+                - List of tuples with (distance, angle) for each detected obstacle.
+                - List of tuples with (distance, angle) for each detected empty space.
         """
-        sensor_data = []
+        obstacles = []
+        empty_spaces = []
         car_x, car_y = car_pos
 
         # Convert car orientation to radians and calculate FOV boundaries
@@ -85,21 +88,42 @@ class Car_Dynamics:
         # Iterate through each cell in the environment
         for y in range(len(environment)):
             for x in range(len(environment[y])):
-                if environment[y][x] == 1:  #  1 represents an obstacle
-                    obstacle_pos = (x, y)
-                    rel_x, rel_y = obstacle_pos[0] - car_x, obstacle_pos[1] - car_y
-                    distance = math.sqrt(rel_x**2 + rel_y**2)
+                obstacle_pos = (x, y)
+                rel_x, rel_y = obstacle_pos[0] - car_x, obstacle_pos[1] - car_y
+                distance = math.sqrt(rel_x**2 + rel_y**2)
+                angle = math.atan2(rel_y, rel_x)
 
-                    if distance <= max_distance:
-                        angle = math.atan2(rel_y, rel_x)
-                        # Normalize the angle
-                        if fov_start <= angle <= fov_end:
-                            # Convert angle to relative to car orientation
-                            rel_angle = math.degrees(angle - car_orientation_rad)
-                            sensor_data.append((distance, rel_angle))
+                # Check if the point is within the sensor's FOV and within the max distance
+                if distance <= max_distance and fov_start <= angle <= fov_end:
+                    # Normalize the angle
+                    rel_angle = math.degrees(angle - car_orientation_rad)
+                    # Check if the point is an obstacle or empty space
+                    if environment[y][x] == 1:  # Obstacle detected
+                        obstacles.append((distance, rel_angle))
+                    elif environment[y][x] == 0:  # Empty space detected
+                        empty_spaces.append((distance, rel_angle))
+
+        return obstacles, empty_spaces
+    
+    def discover_obstacles(self,car_pos,car_orientation, environment):
+        """
+        Updates the car_obstacle array with new sensor data.
         
-        #sensor data from here will be passed into process_sensor_data() to update the map
-        return sensor_data
+        :param sensor_data_function: A function from the control system that returns obstacle coordinates.
+        :return: Updated array of obstacles.
+        """
+        # Call the sensor data function to get new obstacles
+        
+        new_obstacles = self.detect_obstacles(car_pos, car_orientation, environment, max_distance=20, fov_deg=120)
+        for obstacle in new_obstacles:
+            if obstacle not in self.car_obs:
+                self.car_obs.append(obstacle)
+        print(self.car_obs)
+        return self.car_obs
+        
+    def detect_empty_parking(self,obstacles):#check whether I detected an obstacle in the parking lot area, if there is then I will reflect False
+        for obstacle in obstacles:
+            if 
 
 #To optimise steering based off wheere you want to go    
 class MPC_Controller:
