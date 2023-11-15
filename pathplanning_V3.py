@@ -2,6 +2,7 @@ import numpy as np
 import math
 import scipy.interpolate as scipy_interpolate
 from utils import angle_of_line
+import matplotlib.pyplot as plt
 # from control_v3 import Car_Dynamics, MPC_Controller, Linear_MPC_Controller
 
 ############################################## Functions ######################################################
@@ -204,7 +205,7 @@ class AStarPlanner:
         self.obstacle_map = [[False for _ in range(self.y_width)]
                              for _ in range(self.x_width)]
         
-        #fill in the obstacle map with True if there is an obstacle in the grid map
+        #fill in the obstacle map with True if there is an obstacle in the grid map and if d < rr (car radius) which means that the car is too near the obstacle
         for ix in range(self.x_width): #iterate through the x coordinates of the grid map
             x = self.calc_grid_position(ix, self.min_x) #should have no change since min_x is 0
             for iy in range(self.y_width): #iterate through the y coordinates of the grid map
@@ -241,13 +242,21 @@ class ParkPathPlanning:
                                   np.array([[100+2*self.margin,i] for i in range(100+2*self.margin)]),
                                   np.array([[i,0] for i in range(100+self.margin)]),
                                   np.array([[i,100+2*self.margin] for i in range(100+2*self.margin)]),
-                                  obstacles])
-
+                                  obstacles]) 
+        
+        
+        # #plot obstacles for testing
+        # plt.scatter(self.obs[:,0],self.obs[:,1])
+        # plt.show()
+        # print(self.obs.shape)
+        # print(self.obs)
+        
         self.ox = [int(item) for item in self.obs[:,0]]
         self.oy = [int(item) for item in self.obs[:,1]]
+
         self.robot_radius = 4
         self.a_star = AStarPlanner(self.ox, self.oy,self.robot_radius)
-        self.q_table = np.zeros((100, 100, 4))  # Initialize Q-table with zeros
+
     
     def plan_path(self,sx, sy, gx, gy): #A star planning to the goal
         rx, ry = self.a_star.planning(sx+self.margin, sy+self.margin, gx+self.margin, gy+self.margin)

@@ -8,6 +8,9 @@ from environment_v3 import Environment, Parking1
 from pathplanning_V3 import  ParkPathPlanning, interpolate_b_spline_path, interpolate_path
 from control_v3 import Car_Dynamics, MPC_Controller, Linear_MPC_Controller
 from utils import angle_of_line, make_square, DataLogger
+from qlenvironment import ParkingEnvironment
+from qlearningpark import QLearningAgent
+import numpy as np
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -21,7 +24,7 @@ if __name__ == '__main__':
 
     ########################## default variables for start and end ##############################
     start = np.array([args.x_start, args.y_start])
-    original_end   = np.array([85, 10])
+    original_end   = np.array([85, 10]) #to indicate of carpark end
     #############################################################################################
 
     # environment margin  : 5
@@ -30,7 +33,7 @@ if __name__ == '__main__':
     ########################## defining obstacles ###############################################
     # park_slot = args.parking
     # park_slot = np.random.randint(-10,24)
-    parking1 = Parking1(10,original_end) # random parking slot selection ## of can be args.parking
+    parking1 = Parking1(1,original_end) # random parking slot selection ## of can be args.parking
     end,car_obs,env_obs = parking1.generate_obstacles() #car_obs is what car can see and env_obs is what see
 
 
@@ -46,7 +49,7 @@ if __name__ == '__main__':
     car_obs = np.vstack([car_obs,new_obs])
     #############################################################################################
 
-    ########################### initialization for map and car ##################################################
+    ########################### initialization for map and car and booleans for Astar and QL ##################################################
     env = Environment(env_obs)
     my_car = Car_Dynamics(start[0], start[1], 0, np.deg2rad(args.psi_start), length=4, dt=0.2)
     MPC_HORIZON = 5
@@ -57,24 +60,32 @@ if __name__ == '__main__':
     res = env.render(my_car.x, my_car.y, my_car.psi, 0)
     cv2.imshow('environment', res)
     key = cv2.waitKey(1)
-    #############################################################################################
     
+    #Astar
+    can_park = False #boolean to check if car can park
+    parkIsAstar = False #boolean to check if parking is done using A star
+    current_pos = [] #to store the current position of the car
+    counter = 0 #counter to check if car can park
+    
+    #QL
+    trainQL = False #boolean to check if training of QL is true
+    envQL = ParkingEnvironment(current_pos, end, env_obs)
+    state_space_size = envQL.grid_width * envQL.grid_width  # 110 x 110 = 12100
+    action_space_size = 8  # 8 directions of movement
+    learning_rate = 0.1
+    discount_factor = 0.99
+    exploration_rate = 1.0
+    agent = QLearningAgent(state_space_size, action_space_size, learning_rate, discount_factor, exploration_rate)
+    ####################################### Booleans and setting ######################################################
+
     ############################# path planning to Original Goal ###############################
     path_planner = ParkPathPlanning(car_obs) #path planner class to take in the obstacles visible to the car only
     print('routing to end of carpark ...') 
     path = path_planner.plan_path(int(start[0]),int(start[1]),int(original_end[0]),int(original_end[1])) #path planning
     env.draw_path(path)
     ################################## Travel to original goal or empty parking slot ##################################################
-    can_park = False #boolean to check if car can park
-    parkIsAstar = True
-    obstacle_found = False #boolean to check if obstacle is 
-    # end = [] #to store the parking slot location
-    current_pos = [] #to store the current position of the car
-    counter = 0 #counter to check if car can park
-    print('driving to destination ...')
-    
-    # print(path_planner.a_star.obstacle_map)
-    
+
+    print('driving to destination ...')  
     while len(path) > 0: #while path is not empty
 
         acc, delta = controller.optimize(my_car, path[:MPC_HORIZON]) #get acc and delta from controller of the first 5 points in path
@@ -89,8 +100,8 @@ if __name__ == '__main__':
             print('~ No parking slots found, driver to take over ~')
             break
         
-        #Eerouting to empty parking slot using A* path planning as parking
-        if counter > 100: ###TESTTTT NEEDD TO BE REPLACED WHEN CAN PARK IS TRUE
+        #Rerouting to empty parking slot using QL planning as parking
+        if counter > 120:
             print('rerouting to empty parking slot ...')
             if parkIsAstar: #using A* path planning to park car
                 current_pos = path[0] #get current position of car
@@ -106,7 +117,7 @@ if __name__ == '__main__':
         path = path[1:] #remove the first point in path
         counter += 1
 
-    ################################## Parking of car ##################################################
+    ################################## Parking of car using Astar ##################################################
     if parkIsAstar: #if  park to be done using A star is true
         new_end, park_path, ensure_path1, ensure_path2 = path_planner.replan_park(int(current_pos[0]),int(current_pos[1]),int(end[0]),int(end[1]))
         path = path_planner.plan_path(int(current_pos[0]),int(current_pos[1]),int(new_end[0]),int(new_end[1]))
@@ -123,90 +134,55 @@ if __name__ == '__main__':
             key = cv2.waitKey(1)
             if key == ord('s'):
                 cv2.imwrite('res.png', res*255)
+        print('~ Parking completed ~')
 
+    ################################## Training QL or testing QL to park car ##################################################
+    
+    else: #if  park to be done using Q learning is true
+        if trainQL:
+            print('training park scenario using QL ...')
+            # Training parameters
+            num_episodes = 1000
+            max_steps_per_episode = 100
+            
+            # Training loop
+            for episode in range(num_episodes):
+                # Reset environment and get initial state
+                x, y = envQL.reset()  # Reset the environment to start state
+                state_index = envQL.get_state_index()  # Get the current state
+
+                for step in range(max_steps_per_episode):
+                    action = agent.choose_action(state_index)
+                    new_state, reward, done = envQL.step(action)
+                    new_state_index = envQL.get_state_index()
+                    agent.update_q_table(state_index, action, reward, new_state_index)
+                    
+                    state_index = new_state_index
+                    
+                    if done:
+                        break
+
+            # Save the trained Q-table
+            np.save("trained_q_table.npy", agent.q_table)
+        else:
+            print('testing park scenario using QL ...')
+            # Load the trained Q-table
+            q_table = np.load("trained_q_table.npy")
+            agent.exploration_rate = 0  # Disable exploration
+            state = envQL.reset()  # Reset the environment to start state
+            state_index = envQL.get_state_index(state.x, state.y, env.grid_width)
+
+            done = False
+            while not done:
+                action = agent.choose_action(state_index)  # Choose best action based on Q-table
+                new_state, reward, done = env.step(action)  # Take the action
+                new_state_index = envQL.get_state_index(new_state.x, new_state.y, env.grid_width)
+
+                state_index = new_state_index
+        
     # zeroing car steer
     res = env.render(my_car.x, my_car.y, my_car.psi, 0)
     logger.save_data()
     cv2.imshow('environment', res)
     key = cv2.waitKey()
-    #############################################################################################
-    ############################# path planning #################################################
-
-
-    # print('planning park scenario ...')
-    # new_end, park_path, ensure_path1, ensure_path2 = path_planner.generate_park_scenario(int(start[0]),int(start[1]),int(end[0]),int(end[1]))
-    
-    # print('routing to destination ...')
-    # path = park_path_planner.plan_path(int(start[0]),int(start[1]),int(new_end[0]),int(new_end[1]))
-    # path = np.vstack([path, ensure_path1])
-
-    # # print('interpolating ...')
-    # # interpolated_path = interpolate_path(path, sample_rate=5)
-    # # interpolated_park_path = interpolate_path(park_path, sample_rate=2)
-    # # interpolated_park_path = np.vstack([ensure_path1[::-1], interpolated_park_path, ensure_path2[::-1]])
-    
-    # park_path = np.vstack([ensure_path1[::-1], park_path, ensure_path2[::-1]])
-
-    # env.draw_path(path)
-    # env.draw_path(park_path)
-
-    # final_path = np.vstack([path, park_path, ensure_path2])
-
-    # env.draw_path(park_path)
-    # # env.draw_path(interpolated_park_path)
-
-    # # final_path = path
-    # final_path = np.vstack([path, park_path])
-
-    #############################################################################################
-
-    # ################################## control ##################################################
-    # print('driving to destination ...')
-    # for i,point in enumerate(final_path):
-
-            
-    #         acc, delta = controller.optimize(my_car, final_path[i:i+MPC_HORIZON])
-    #         my_car.update_state(my_car.move(acc,  delta))
-            
-    #         #sensor update
-    #         res = env.render(my_car.x, my_car.y, my_car.psi, delta)
-    #         logger.log(point, my_car, acc, delta)
-    #         cv2.imshow('environment', res)
-    #         key = cv2.waitKey(1)
-    #         if key == ord('s'):
-    #             cv2.imwrite('res.png', res*255)
-    #         if point[0] -0.5 == original_end[0] and point[1] -0.5 == original_end[1]:
-    #             print('~ No parking slots found, driver to take over ~')
-    #             # break
-
-    
-    # # zeroing car steer
-    # res = env.render(my_car.x, my_car.y, my_car.psi, 0)
-    # logger.save_data()
-    # cv2.imshow('environment', res)
-    # key = cv2.waitKey()
-    # #############################################################################################
-
     cv2.destroyAllWindows()
-
-
-#comment this while loop out if useless
-'''
-    # Start the main loop
-    while not point[0] -0.5 == original_end[0] and point[1] -0.5 == original_end[1]:
-        # Your code for updating obstacles, path planning, and moving the car goes here
-
-        acc, delta = controller.optimize(my_car, final_path[i:i+MPC_HORIZON])
-        my_car.update_state(my_car.move(acc,  delta))
-        #sensor update
-        res = env.render(my_car.x, my_car.y, my_car.psi, delta)
-        logger.log(point, my_car, acc, delta)
-        cv2.imshow('environment', res)
-        key = cv2.waitKey(1)
-        if key == ord('s'):
-            cv2.imwrite('res.png', res*255)
-
-
-        print('~ No parking slots found, driver to take over ~')
-
-'''
