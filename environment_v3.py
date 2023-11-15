@@ -96,7 +96,7 @@ class Parking1:
                      [[30,i] for i in range(10,105)]+\
                      [[i,10] for i in range(30,36) ]+\
                      [[i,90] for i in range(70,76) ] #+ [[i,20] for i in range(-5,50)]
-        self.car_obs = np.array(self.walls)  #create an obstacle
+        # self.car_obs = np.array(self.walls)  #create an obstacle
         self.env_obs = np.array(self.walls) #obstacles for env to draw
         self.cars = {1 : [[35,20]], 2 : [[65,20]], 3 : [[75,20]], 4 : [[95,20]],
                      5 : [[35,32]], 6 : [[65,32]], 7 : [[75,32]], 8 : [[95,32]],
@@ -140,6 +140,7 @@ class Parking1:
                 obstacle = self.car_obstacle + self.cars[i] #adding car obstacles to the environment
                 self.env_obs = np.append(self.env_obs, obstacle) #adding car obstacles to the environment
         self.env_obs = np.array(self.env_obs).reshape(-1,2) #convert 1 column array to 2 column array
+        self.car_obs = self.env_obs #FSFBFEFIBFEIB
         return self.end, self.car_obs, self.env_obs
 
     def make_car(self): #to make car obstacle

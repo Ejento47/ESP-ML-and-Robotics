@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     ########################## defining obstacles ###############################################
     random_emptyslot = np.random.randint(-10,24)
-    parking1 = Parking1(-1,original_end) # random parking slot selection ## of can be args.parking
+    parking1 = Parking1(24,original_end) # random parking slot selection ## of can be args.parking
     end,car_obs,env_obs = parking1.generate_obstacles() #car_obs is what car can see and env_obs is what see
 
 
@@ -54,6 +54,7 @@ if __name__ == '__main__':
     controller = MPC_Controller()
     # controller = Linear_MPC_Controller()
 
+    #zeroing car steer
     res = env.render(my_car.x, my_car.y, my_car.psi, 0)
     cv2.imshow('environment', res)
     key = cv2.waitKey(1)
@@ -62,25 +63,41 @@ if __name__ == '__main__':
     ############################# path planning to Original Goal ###############################
     path_planner = ParkPathPlanning(car_obs) #path planner class to take in the obstacles visible to the car only
     print('routing to end of carpark ...') 
-    path = path_planner.plan_path(int(start[0]),int(start[1]),int(end[0]),int(end[1])) #path planning
+    path = path_planner.plan_path(int(start[0]),int(start[1]),int(original_end[0]),int(original_end[1])) #path planning
     env.draw_path(path)
     ################################## Travel to Original Goal ##################################################
     can_park = False #boolean to check if car can park
+    obstacle_found = False #boolean to check if obstacle is found
+    counter = 0 #counter to check if car can park
     print('driving to destination ...')
-    for i,point in enumerate(path):
-        
-        acc, delta = controller.optimize(my_car, path[i:i+MPC_HORIZON])
-        my_car.update_state(my_car.move(acc,  delta))
-        
-        #sensor update
-        res = env.render(my_car.x, my_car.y, my_car.psi, delta)
-        logger.log(point, my_car, acc, delta)
-        cv2.imshow('environment', res)
-        key = cv2.waitKey(1)
-        if key == ord('s'):
-            cv2.imwrite('res.png', res*255)
-        if point[0] -0.5 == original_end[0] and point[1] -0.5 == original_end[1]:
+    
+    # print(path_planner.a_star.obstacle_map)
+    
+    while len(path) > 0: #while path is not empty
+
+        acc, delta = controller.optimize(my_car, path[:MPC_HORIZON]) #get acc and delta from controller of the first 5 points in path
+        my_car.update_state(my_car.move(acc,  delta)) #update car state
+        res = env.render(my_car.x, my_car.y, my_car.psi, delta) #render environment of the car 
+        logger.log(path[0], my_car, acc, delta) #log the data of car
+        cv2.imshow('environment', res) #show the environment of car
+        key = cv2.waitKey(1) 
+        if path[0][0] -0.5 == original_end[0] and path[0][1] -0.5 == original_end[1]:
             print('~ No parking slots found, driver to take over ~')
+            break
+        
+        #TEWSITNTSNT SFWSDSDWEER
+        if counter > 150: ###TESTTTT NEEDD TO BE REPLACED WHEN CAN PARK IS TRUE
+            can_park = True #set can_park to true
+            current_pos = path[0]           
+            path = [] #clear path array
+            path = path_planner.plan_path(int(current_pos[0]),int(current_pos[1]),int(end[0]),int(end[1])) #path planning
+            env.draw_path(path)
+            
+        path = path[1:] #remove the first point in path
+        counter += 1
+        
+        if key == ord('s'):  #to save the imagee
+            cv2.imwrite('res.png', res*255)
 
     
     # zeroing car steer
