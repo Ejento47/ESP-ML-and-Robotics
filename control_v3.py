@@ -2,6 +2,7 @@ import numpy as np
 from scipy.optimize import minimize
 import copy
 import math
+# from environment_v3 import Environment, Parking1
 
 
 class Car_Dynamics:
@@ -63,18 +64,19 @@ class Car_Dynamics:
 
         return global_x, global_y
 
-    def detect_obstacles(car_pos, car_orientation, environment, max_distance=20, fov_deg=120):
+    def detect_obstacles_and_spaces(self, car_pos, car_orientation, environment, obstacles, empty_spaces, max_distance=100, fov_deg=120):
         """
-        Detects obstacles within the field of view of the car.
+        Detects obstacles within the field of view of the car and identifies empty spaces.
 
         :param car_pos: Tuple (x, y) representing the car's position.
-        :param car_orientation: Car's orientation in degrees (0 degrees is east, 90 is north).
+        :param car_orientation: Car's orientation in degrees.
         :param environment: 2D list or array representing the environment, where obstacles are marked.
         :param max_distance: Maximum distance the sensor can detect.
         :param fov_deg: Field of view in degrees.
-        :return: List of tuples with (distance, angle) for each detected obstacle.
+        :return: Tuple of two lists:
+                - List of tuples with (distance, angle) for each detected obstacle.
+                - List of tuples with (distance, angle) for each detected empty space.
         """
-        sensor_data = []
         car_x, car_y = car_pos
 
         # Convert car orientation to radians and calculate FOV boundaries
@@ -82,24 +84,43 @@ class Car_Dynamics:
         fov_start = car_orientation_rad - math.radians(fov_deg / 2)
         fov_end = car_orientation_rad + math.radians(fov_deg / 2)
         
-        # Iterate through each cell in the environment
-        for y in range(len(environment)):
-            for x in range(len(environment[y])):
-                if environment[y][x] == 1:  #  1 represents an obstacle
+        # Iterate through each cell in the environment, where environment in this case will probably be called as Environment.background
+        for y in range(car_y-20,car_y+100):
+            for x in range(car_x-20,car_y+100):
+                if x>=0 and y>=0:
                     obstacle_pos = (x, y)
                     rel_x, rel_y = obstacle_pos[0] - car_x, obstacle_pos[1] - car_y
                     distance = math.sqrt(rel_x**2 + rel_y**2)
+                    angle = math.atan2(rel_y, rel_x)
 
-                    if distance <= max_distance:
-                        angle = math.atan2(rel_y, rel_x)
+                    # Check if the point is within the sensor's FOV and within the max distance
+                    if distance <= max_distance and fov_start <= angle <= fov_end:
                         # Normalize the angle
-                        if fov_start <= angle <= fov_end:
-                            # Convert angle to relative to car orientation
-                            rel_angle = math.degrees(angle - car_orientation_rad)
-                            sensor_data.append((distance, rel_angle))
+                        rel_angle = math.degrees(angle - car_orientation_rad)
+                        # Check if the point is an obstacle or empty space
+                        if environment[y][x] == [0,0,0]:  # Obstacle detected
+                            obstacles.append((distance, rel_angle))
+                        elif environment[y][x] == [1,1,1]:  # Empty space detected
+                            empty_spaces.append((distance, rel_angle))
+
+            return obstacles, empty_spaces
+    
+    def find_key_by_value(self, dictionary, target_value):
+        for key, value in dictionary.items():
+            if value == target_value:
+                return key
+        return None
+    
+    def detect_empty_parking(self, car_positions, parking_slots, empty_spaces):
+        #car_positions = Parking1.cars.values()  # Accessing cars attribute
+        #parking_slots = Parking1.parking_slots  # Accessing parking_slots attribute
         
-        #sensor data from here will be passed into process_sensor_data() to update the map
-        return sensor_data
+        for car in car_positions:
+            if car in empty_spaces:
+                slot_number = self.find_key_by_value(parking_slots, car)
+                if slot_number is not None:
+                    parking_slots[slot_number] = False
+                
 
 #To optimise steering based off wheere you want to go    
 class MPC_Controller:
@@ -108,6 +129,7 @@ class MPC_Controller:
         self.R = np.diag([0.01, 0.01])                 # input cost matrix
         self.Rd = np.diag([0.01, 1.0])                 # input difference cost matrix
         self.Q = np.diag([1.0, 1.0])                   # state cost matrix
+        self.Qf = self.Q                               # state final matrix
 
     def mpc_cost(self, u_k, my_car, points):
         mpc_car = copy.copy(my_car)
@@ -118,8 +140,8 @@ class MPC_Controller:
         cost = 0.0 #initial cost is 0
 
         for i in range(self.horiz):
-            state_dot = mpc_car.move(u_k[0,i], u_k[1,i])
-            mpc_car.update_state(state_dot)
+            state_dot = mpc_car.move(u_k[0,i], u_k[1,i]) #state_dot is the change in state
+            mpc_car.update_state(state_dot) #update the state of the car based on the new change
         
             z_k[:,i] = [mpc_car.x, mpc_car.y] #update the state vector
             cost += np.sum(self.R@(u_k[:,i]**2)) #cost is the sum of the input cost matrix multiplied by the input
@@ -155,6 +177,7 @@ class Linear_MPC_Controller:
         self.R = np.diag([0.01, 0.01])                 # input cost matrix
         self.Rd = np.diag([0.01, 1.0])                 # input difference cost matrix
         self.Q = np.diag([1.0, 1.0])                   # state cost matrix
+        self.Qf = self.Q                               # state final matrix
         self.dt=0.2   
         self.L=4                          
 
@@ -164,18 +187,18 @@ class Linear_MPC_Controller:
         A = np.array([[1, 0, self.dt*np.cos(psi)         , -self.dt*v*np.sin(psi)],
                     [0, 1, self.dt*np.sin(psi)         , self.dt*v*np.cos(psi) ],
                     [0, 0, 1                           , 0                     ],
-                    [0, 0, self.dt*np.tan(delta)/self.L, 1                     ]])
+                    [0, 0, self.dt*np.tan(delta)/self.L, 1                     ]]) #linearized model of state transition matrix
         # 4*2 
         B = np.array([[0      , 0                                  ],
                     [0      , 0                                  ],
                     [self.dt, 0                                  ],
-                    [0      , self.dt*v/(self.L*np.cos(delta)**2)]])
+                    [0      , self.dt*v/(self.L*np.cos(delta)**2)]]) #linearized model of control input matrix
 
         # 4*1
         C = np.array([[self.dt*v* np.sin(psi)*psi                ],
                     [-self.dt*v*np.cos(psi)*psi                ],
                     [0                                         ],
-                    [-self.dt*v*delta/(self.L*np.cos(delta)**2)]])
+                    [-self.dt*v*delta/(self.L*np.cos(delta)**2)]]) #linearized model of offset matrix
         
         return A, B, C
 
@@ -193,10 +216,10 @@ class Linear_MPC_Controller:
             new_state = A@old_state + B@u_k + C
         
             z_k[:,i] = [new_state[0,0], new_state[1,0]]
-            cost += np.sum(self.R@(u_k[:,i]**2)) #cost is the sum of the input cost matrix multiplied by the input
-            cost += np.sum(self.Q@((desired_state[:,i]-z_k[:,i])**2)) #cost is the sum of the state cost matrix multiplied by the difference between the desired state and the actual state
-            if i < (self.horiz-1): #if it is not the last state     
-                cost += np.sum(self.Rd@((u_k[:,i+1] - u_k[:,i])**2)) #cost is the sum of the input difference cost matrix multiplied by the difference between the current input and the next input
+            cost += np.sum(self.R@(u_k[:,i]**2))
+            cost += np.sum(self.Q@((desired_state[:,i]-z_k[:,i])**2))
+            if i < (self.horiz-1):     
+                cost += np.sum(self.Rd@((u_k[:,i+1] - u_k[:,i])**2))
             
             old_state = new_state
         return cost
@@ -217,5 +240,3 @@ class Linear_MPC_Controller:
         
         # Return the first optimal input only
         return result.x[0], result.x[1]
-        
-        
