@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 # from control_v3 import Car_Dynamics, MPC_Controller, Linear_MPC_Controller
 
 class Environment:
@@ -28,10 +29,15 @@ class Environment:
                                       np.int32)
 
         #height and width
+        
         self.background = np.ones((1000+20*self.margin,1000+20*self.margin,3)) #creating background image of environment in white
         # self.background[10:1000+20*self.margin:10,:] = np.array([200,200,200])/255 #setting of gridlines by setting every 10th pixel to grey in x direction
         # self.background[:,10:1000+20*self.margin:10] = np.array([200,200,200])/255 #setting of gridlines by setting every 10th pixel to grey in y direction
         self.place_obstacles(obstacles)
+        ##plot background in matlab for testing
+        # plt.imshow(self.background)
+        # plt.show()
+
                 
     def place_obstacles(self, obs): 
         obstacles = np.concatenate([np.array([[0,i] for i in range(100+2*self.margin)]),
@@ -41,7 +47,8 @@ class Environment:
                                     obs + np.array([self.margin,self.margin])])*10 #adding margin to obstacles and converting to size of 1000 coordinates
         for ob in obstacles:
             self.background[ob[1]:ob[1]+10,ob[0]:ob[0]+10]=0 #setting of obstacles in black
-    
+
+            
     def draw_path(self, path): #taken from visualisation of exisiting codebase
         path = np.array(path)*10 #convert path coordinates to 1000 coordinates
         color = np.random.randint(0,150,3)/255
