@@ -5,7 +5,7 @@ import argparse
 import random
 
 from environment_v3 import Environment, Parking1
-from pathplanning_V3 import  ParkPathPlanning, interpolate_b_spline_path, interpolate_path
+from pathplanning_V3 import  ParkPathPlanning
 from control_v3 import Car_Dynamics, MPC_Controller, Linear_MPC_Controller
 from utils import angle_of_line, make_square, DataLogger
 from qlenvironment import ParkingEnvironment
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     ########################## defining obstacles ###############################################
     # park_slot = args.parking
     # park_slot = np.random.randint(-10,24)
-    parking1 = Parking1(-5,original_end) # random parking slot selection ## of can be args.parking
+    parking1 = Parking1(1,original_end) # random parking slot selection ## of can be args.parking
     end,car_obs,env_obs = parking1.generate_obstacles() #car_obs is what car can see and env_obs is what see
 
 
@@ -63,16 +63,16 @@ if __name__ == '__main__':
     
     #Astar
     can_park = True #boolean to check if car can park
-    parkIsAstar = True #boolean to check if parking is done using A star
+    parkIsAstar = False #boolean to check if parking is done using A star
     current_pos = [] #to store the current position of the car
     counter = 0 #counter to check if car can park
     
     #QL
-    trainQL = False #boolean to check if training of QL is true
+    trainQL = True #boolean to check if training of QL is true
     action_space_size = 8  # 8 directions of movement
     learning_rate = 0.1
     discount_factor = 0.99
-    exploration_rate = 0.4
+    exploration_rate = 0.5
     
     ####################################### Booleans and setting ######################################################
 
@@ -100,7 +100,7 @@ if __name__ == '__main__':
         
         #Rerouting to empty parking slot using QL planning as parking
         if can_park:
-            if counter >120:
+            if counter >130:
                 print('rerouting to empty parking slot ...')
                 current_pos = path[0] #get current position of car
                 break
@@ -133,15 +133,15 @@ if __name__ == '__main__':
     
     else: #if  park to be done using Q learning is true
         envQL = ParkingEnvironment(current_pos, end, env_obs)
-        state_space_size = envQL.grid_width * envQL.grid_width  # 110 x 110 = 12100
+        state_space_size = envQL.grid_width * envQL.grid_width * action_space_size  # 110 x 110 = 12100
         agent = QLearningAgent(state_space_size, action_space_size, learning_rate, discount_factor, exploration_rate)
         
         if trainQL:
 
             print('training park scenario using QL ...')
             # Training parameters
-            num_episodes = 1000
-            max_steps_per_episode = 100
+            num_episodes = 10000
+            max_steps_per_episode = 1000
             
             # Training loop
             for episode in range(num_episodes):
@@ -163,7 +163,6 @@ if __name__ == '__main__':
             # Save the trained Q-table
             np.save("trained_q_table.npy", agent.q_table)
         else:
-
             print('testing park scenario using QL ...')
             # Load the trained Q-table
             q_table = np.load("trained_q_table.npy")
@@ -174,9 +173,10 @@ if __name__ == '__main__':
             done = False
             while not done:
                 action = agent.choose_action(state_index)  # Choose best action based on Q-table
-                new_state, reward, done = agent.choose_action(action)  # Take the action
-                new_state_index = envQL.get_state_index(new_state.x, new_state.y, env.grid_width)
-                pathQL = np.vstack([path, np.array([[new_state.x, new_state.y]])]) #add the new state to the path
+                new_state, reward, done = envQL.step(action)
+                new_state_index = envQL.get_state_index()
+                new_x, new_y = envQL.get_position_from_state_index(new_state_index)
+                pathQL = np.vstack([path, np.array([[new_x, new_y]])]) #add the new state to the path
                 state_index = new_state_index
             env.draw_path(path)
         

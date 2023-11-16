@@ -112,7 +112,7 @@ class Parking1:
                      17: [[35,68]], 18: [[65,68]], 19: [[75,68]], 20: [[95,68]],
                      21: [[35,80]], 22: [[65,80]], 23: [[75,80]], 24: [[95,80]]} #parking slots location
         
-        self.parking_slots ={1 : True, 2 : True, 3 : True, 4 : True,
+        self.parking_slots = {1 : True, 2 : True, 3 : True, 4 : True,
                             5 : True, 6 : True, 7 : True, 8 : True,
                             9 : True, 10: True, 11: True, 12: True,
                             13: True, 14: True, 15: True, 16: True,

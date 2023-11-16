@@ -20,7 +20,10 @@ class QLearningAgent:
         # print(f"Action: {action}, Type: {type(action)}")
         # print(f"New State index: {next_state}, Type: {type(next_state)}")
         #Q(s,a) = Q(s,a) + learning_rate * (reward + discount_factor * max_future_q - Q(s,a))
+        
         current_q = self.q_table[state, action]
         max_future_q = np.max(self.q_table[next_state, :]) 
         new_q = current_q + self.learning_rate * (reward + self.discount_factor * max_future_q - current_q)
         self.q_table[state, action] = new_q
+        print("self.q_table[state, action]: ", self.q_table[state, action])
+        

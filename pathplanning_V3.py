@@ -5,26 +5,7 @@ from utils import angle_of_line
 import matplotlib.pyplot as plt
 # from control_v3 import Car_Dynamics, MPC_Controller, Linear_MPC_Controller
 
-############################################## Functions ######################################################
 
-def interpolate_b_spline_path(x, y, n_path_points, degree=3):
-    ipl_t = np.linspace(0.0, len(x) - 1, len(x))
-    spl_i_x = scipy_interpolate.make_interp_spline(ipl_t, x, k=degree)
-    spl_i_y = scipy_interpolate.make_interp_spline(ipl_t, y, k=degree)
-    travel = np.linspace(0.0, len(x) - 1, n_path_points)
-    return spl_i_x(travel), spl_i_y(travel)
-
-def interpolate_path(path, sample_rate):
-    choices = np.arange(0,len(path),sample_rate)
-    if len(path)-1 not in choices:
-            choices =  np.append(choices , len(path)-1)
-    way_point_x = path[choices,0]
-    way_point_y = path[choices,1]
-    n_course_point = len(path)*3
-    rix, riy = interpolate_b_spline_path(way_point_x, way_point_y, n_course_point)
-    new_path = np.vstack([rix,riy]).T
-    # new_path[new_path<0] = 0
-    return new_path
 
 ################################################ Path Planner ################################################
 
@@ -90,7 +71,7 @@ class AStarPlanner:
             # Iterate through each node in the open set
             for node_id, node in open_set.items():
                 # Calculate the total cost for the node (cost + heuristic)
-                total_cost = node.cost + self.manhattan_heuristic(self.goal, node)
+                total_cost = node.cost + self.euclidean_heuristic(self.goal, node)
 
                 # Check if this node has the lowest total cost and replace the lowest cost node if so
                 if total_cost < lowest_cost: 
@@ -236,7 +217,7 @@ class ParkPathPlanning:
         self.margin = 5
         #scale obstacles from env margin to pathplanning margin
         obstacles = obstacles + np.array([self.margin,self.margin])
-        obstacles = obstacles[(obstacles[:,0]>=0) & (obstacles[:,1]>=0)]
+        obstacles = obstacles[(obstacles[:,0]>=0) & (obstacles[:,1]>=0)] #remove obstacles with negative coordinates
 
         self.obs = np.concatenate([np.array([[0,i] for i in range(100+self.margin)]),
                                   np.array([[100+2*self.margin,i] for i in range(100+2*self.margin)]),

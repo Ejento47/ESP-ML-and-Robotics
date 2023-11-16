@@ -6,5 +6,5 @@ print(data.shape)
 # if data contains values > 0
 # then it is a trained q table
 # else it is an empty q table
-if np.any(data != 0):
+if np.any(data > 0):
     print('trained q table')
