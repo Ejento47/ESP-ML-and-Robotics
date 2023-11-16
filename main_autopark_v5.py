@@ -33,18 +33,18 @@ if __name__ == '__main__':
     random_emptyslot = np.random.randint(-10,24)
     parking1 = Parking1(24,original_end) # random parking slot selection ## of can be args.parking
     end,car_obs,env_obs = parking1.generate_obstacles() #car_obs is what car can see and env_obs is what see
-    original_car_obs = car_obs.copy()
+    original_env_obs = env_obs.copy()
 
  
     # Adding of obstables to the environment
     square1 = make_square(10,65,20)
     square2 = make_square(15,30,20)
     square3 = make_square(50,50,10)
-    env_obs = np.vstack([env_obs,square1,square2,square3])
-    car_obs = np.vstack([car_obs,square1,square2,square3]) ####TO CHANGE BACK TO CAR_OBS
+    env_obs = np.vstack([env_obs,square1,square2,square3]) 
     new_obs = np.array([[78,78],[79,79],[78,79]])
     env_obs = np.vstack([env_obs,new_obs])
-    car_obs = np.vstack([car_obs,new_obs])
+    detected_empty_spaces = [[0,90]]
+    detected_obstacles = np.array(parking1.walls)
     #############################################################################################
 
     ########################### initialization for map and car ##################################################
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     #############################################################################################
     
     ############################# path planning to Original Goal ###############################
-    path_planner = ParkPathPlanning(car_obs) #path planner class to take in the obstacles visible to the car only
+    path_planner = ParkPathPlanning(detected_obstacles) #path planner class to take in the obstacles visible to the car only
     print('routing to end of carpark ...') 
     path = path_planner.plan_path(int(start[0]),int(start[1]),int(original_end[0]),int(original_end[1])) #path planning
     env.draw_path(path)
@@ -70,17 +70,21 @@ if __name__ == '__main__':
     obstacle_found = False #boolean to check if obstacle is found
     counter = 0 #counter to check if car can park
     print('driving to destination ...')
-    detected_empty_spaces = [[0,90]]
-    detected_obstacles = np.array(parking1.walls)
 
-    while len(path) > 0: #while path is not empty
+
+    while my_car.state[0][0]!=original_end[0] and my_car.state[1][0]!=original_end[1]: #while path is not empty
 
         acc, delta = controller.optimize(my_car, path[:MPC_HORIZON]) #get acc and delta from controller of the first 5 points in path
         my_car.update_state(my_car.move(acc,  delta)) #update car state
 
         #my_car.sensor_update(my_car.x, my_car.y, original_car_obs, detected_obstacles, detected_empty_spaces, 20)
+        old_obstacles = detected_obstacles
+        old_empty_spaces = detected_empty_spaces
         my_car.sensor_update(my_car.x, my_car.y, path_planner.a_star.obstacle_map, detected_obstacles, detected_empty_spaces, 30)
-        
+
+        if not np.all(old_obstacles == detected_obstacles):
+            path = path_planner.plan_path(int(start[0]),int(start[1]),int(original_end[0]),int(original_end[1]))
+    
         res = env.render(my_car.x, my_car.y, my_car.psi, delta) #render environment of the car 
         logger.log(path[0], my_car, acc, delta) #log the data of car
         cv2.imshow('environment', res) #show the environment of car
@@ -88,8 +92,8 @@ if __name__ == '__main__':
         if path[0][0] -0.5 == original_end[0] and path[0][1] -0.5 == original_end[1]:
             print('~ No parking slots found, driver to take over ~')
             break
-        #print(len(detected_empty_spaces))
-        #print(len(detected_obstacles))
+        print(len(detected_empty_spaces))
+        print(len(detected_obstacles))
         #TEWSITNTSNT SFWSDSDWEER
         if my_car.detect_empty_parking(list(parking1.cars.values()), detected_empty_spaces): ###TESTTTT NEEDD TO BE REPLACED WHEN CAN PARK IS TRUE
             can_park = True #set can_park to true

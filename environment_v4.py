@@ -98,14 +98,12 @@ class Parking1:
                      [[i,90] for i in range(70,76) ] #+ [[i,20] for i in range(-5,50)]
         # self.car_obs = np.array(self.walls)  #create an obstacle
         self.env_obs = np.array(self.walls) #obstacles for env to draw
-        self.car_obs = []
         self.cars = {1 : [[35,20]], 2 : [[65,20]], 3 : [[75,20]], 4 : [[95,20]],
                      5 : [[35,32]], 6 : [[65,32]], 7 : [[75,32]], 8 : [[95,32]],
                      9 : [[35,44]], 10: [[65,44]], 11: [[75,44]], 12: [[95,44]],
                      13: [[35,56]], 14: [[65,56]], 15: [[75,56]], 16: [[95,56]],
                      17: [[35,68]], 18: [[65,68]], 19: [[75,68]], 20: [[95,68]],
                      21: [[35,80]], 22: [[65,80]], 23: [[75,80]], 24: [[95,80]]} #parking slots location
-        self.empty_spaces = []
         self.parking_slots ={1 : True, 2 : True, 3 : True, 4 : True,
                             5 : True, 6 : True, 7 : True, 8 : True,
                             9 : True, 10: True, 11: True, 12: True,
@@ -119,16 +117,25 @@ class Parking1:
         else:
             self.end =  end
 
-    def generate_obstacles(self):#changed this and removed self.car_obs completely from this
+    def generate_obstacles(self):
         for i in self.cars.keys():
             for j in range(len(self.cars[i])):
                 obstacle = self.car_obstacle + self.cars[i] #adding car obstacles to the environment
                 self.env_obs = np.append(self.env_obs, obstacle) #adding car obstacles to the environment
         self.env_obs = np.array(self.env_obs).reshape(-1,2) #convert 1 column array to 2 column array
-        return self.end, self.env_obs
+        self.car_obs = self.env_obs #FSFBFEFIBFEIB
+        return self.end, self.car_obs, self.env_obs
 
     def make_car(self): #to make car obstacle
         car_obstacle_x, car_obstacle_y = np.meshgrid(np.arange(-2,2), np.arange(-4,4)) #create a meshgrid of car obstacle
         car_obstacle = np.dstack([car_obstacle_x, car_obstacle_y]).reshape(-1,2) # add x and y coordinates together and store in 2 columns
         return car_obstacle
     
+    '''
+    def proper_walls(self,walls):
+        new_walls = walls.copy()
+        for wall in range(len(walls)):
+            new_walls[wall][0]=walls[wall][0]+5
+            new_walls[wall][1]=walls[wall][1]+5
+        return new_walls
+    '''

@@ -2,7 +2,7 @@ import numpy as np
 import math
 import scipy.interpolate as scipy_interpolate
 from utils import angle_of_line
-# from control_v3 import Car_Dynamics, MPC_Controller, Linear_MPC_Controller
+from control_v4 import Car_Dynamics, MPC_Controller, Linear_MPC_Controller
 
 ############################################## Functions ######################################################
 
@@ -101,7 +101,6 @@ class AStarPlanner:
 
             # Check if the current node is the goal
             if current_node.x == self.goal.x and current_node.y == self.goal.y:
-                print("Goal reached.")
                 self.goal.parent_index = current_node.parent_index
                 self.goal.cost = current_node.cost
                 break
@@ -128,9 +127,7 @@ class AStarPlanner:
 
         # Reconstruct the final path from the goal node to the start node
         path_x, path_y = self.calc_final_path(self.goal, closed_set)
-        print(self.min_y, self.max_y)
         return path_x, path_y
-
 
     def calc_final_path(self, goal_node, closed_set):
         # generate final course
@@ -258,7 +255,6 @@ class ParkPathPlanning:
         ry = np.array(ry)-self.margin+0.5
         path = np.vstack([rx,ry]).T #transpose to [x,y] format
         return path[::-1] #return path in reverse order
-
 
     # def update_q_table(self, state, action, reward, next_state):
     #     alpha = 0.5  # learning rate

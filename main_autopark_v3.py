@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 from time import sleep
 import argparse
 import random
@@ -33,6 +34,9 @@ if __name__ == '__main__':
     random_emptyslot = np.random.randint(-10,24)
     parking1 = Parking1(24,original_end) # random parking slot selection ## of can be args.parking
     end,car_obs,env_obs = parking1.generate_obstacles() #car_obs is what car can see and env_obs is what see
+    print(end)
+    print(car_obs)
+    print(env_obs)
 
 
  
@@ -45,6 +49,8 @@ if __name__ == '__main__':
     new_obs = np.array([[78,78],[79,79],[78,79]])
     env_obs = np.vstack([env_obs,new_obs])
     car_obs = np.vstack([car_obs,new_obs])
+    print(car_obs)
+    print(env_obs)
     #############################################################################################
 
     ########################### initialization for map and car ##################################################
@@ -62,7 +68,7 @@ if __name__ == '__main__':
     
     ############################# path planning to Original Goal ###############################
     path_planner = ParkPathPlanning(car_obs) #path planner class to take in the obstacles visible to the car only
-    print('routing to end of carpark ...') 
+
     path = path_planner.plan_path(int(start[0]),int(start[1]),int(original_end[0]),int(original_end[1])) #path planning
     env.draw_path(path)
     ################################## Travel to Original Goal ##################################################

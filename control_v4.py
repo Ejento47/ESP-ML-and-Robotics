@@ -3,7 +3,7 @@ from scipy.optimize import minimize
 import copy
 import math
 import bisect
-# from environment_v3 import Environment, Parking1
+#from environment_v4 import Environment, Parking1
 
 
 class Car_Dynamics:
@@ -32,51 +32,75 @@ class Car_Dynamics:
         self.v = self.state[2,0] #update the velocity
         self.psi = self.state[3,0] #update the angle
         
-    def limit_sensor(self, x, y):
+    def limit_sensor(self, x, y):#if matrix was what I thought it was
         """
         Limit Sensor Range
         """
-        if x < 5:
-            x = 5
-        elif x > 105:
-            x = 105
+        if x < 0:
+            x = 0
+        elif x > 100:
+            x = 100
+        else:
+            x=x
         
-        if y < 5:
-            y = 5
-        elif y> 105:
-            y = 105
+        if y < 0:
+            y = 0
+        elif y> 100:
+            y = 100
+        else:
+            y=y
 
         return x,y
     
-    '''
-    def binary_search(self, lst, item):
-        # Assuming lst is a sorted list of lists (or tuples) and item is also a list (or tuple)
-        left, right = 0, len(lst) - 1
-        while left <= right:
-            mid = (left + right) // 2
-            if lst[mid] < item:
-                left = mid + 1
-            elif lst[mid] > item:
-                right = mid - 1
-            else:
-                return True  # Item found
-        return False  # Item not found
-    '''
 
-    def process_sensor_data(self, car_x, car_y, environment, obstacles, empty_spaces, distance=20):
+    def process_sensor_data(self, car_x, car_y, og_obstacles, distance):
         """
         Process sensor data to update the environment and re-plan the path if necessary.
         sensor_data: list of tuples containing obstacle positions relative to the car's position
         """
+        more_empty_spaces = []
+        more_obstacles = []
+
         for y in range(int(car_y-(distance/2)), int(car_y+(distance/2 + 1))):
             for x in range (int(car_x-(distance/2)), int(car_x+(distance/2 + 1))):
-                x , y = self.limit_sensor(x,y)
-                if environment[y][x] == False and [y,x] in empty_spaces:
-                    empty_spaces.append([y,x])
-                elif environment[y][x] == True and [y,x] not in obstacles:
-                    obstacles.append([y,x])
-        return obstacles
+                new_x , new_y = self.limit_sensor(x,y)
+                #if using path_planner.a_star.obstacle_map
+                
+                #new_x+=5
+                #new_y+=5
+
+                if og_obstacles[new_y][new_x] == False:
+                    more_empty_spaces.append([new_y,new_x])
+
+                elif og_obstacles[new_y-5][new_x-5] == True:
+                    more_obstacles.append([new_y-5,new_x-5])       
+
+                '''
+                #new_x-=5
+                #new_y-=5
+                #using env_obs
+                if [new_y,new_x] not in og_obstacles:
+                    more_empty_spaces.append([new_y,new_x])
+                    print('mek')
+                elif [new_y,new_x] in og_obstacles:
+                    more_obstacles.append([new_y,new_x])
+                    #print('kfc')
+                '''      
+        return more_empty_spaces, more_obstacles
+
+    def sensor_update(self, car_x, car_y, og_obstacles, obstacles, empty_spaces, distance):
+        extra_empty_spaces, extra_obstacles = self.process_sensor_data(car_x, car_y, og_obstacles, distance)
+        for empty_space in extra_empty_spaces:
+            if empty_space not in empty_spaces:
+                empty_spaces = np.append(empty_spaces, [empty_space], axis=0)
+                #empty_spaces.append(empty_space)
+        for obstacle in extra_obstacles:
+            if not any((obstacle == o).all() for o in obstacles):
+                #np.append(obstacles,obstacle)
+                obstacles = np.append(obstacles, [obstacle], axis=0)
+
     
+
     def find_key_by_value(self, dictionary, target_value):
         for key, value in dictionary.items():
             if value == target_value:
@@ -85,8 +109,10 @@ class Car_Dynamics:
     
     def detect_empty_parking(self, car_positions, empty_spaces):
         #check if the parking slot is empty
-        for car in car_positions:
-            return car in empty_spaces
+        for cars in car_positions:
+            for car in cars:
+                print(car in empty_spaces)
+                return car in empty_spaces
 
 
 #To optimise steering based off wheere you want to go    
