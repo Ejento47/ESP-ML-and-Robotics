@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 from time import sleep
 import argparse
 import random
@@ -34,11 +33,8 @@ if __name__ == '__main__':
     ########################## defining obstacles ###############################################
     # park_slot = args.parking
     # park_slot = np.random.randint(-10,24)
-    parking1 = Parking1(1,original_end) # random parking slot selection ## of can be args.parking
+    parking1 = Parking1(-5,original_end) # random parking slot selection ## of can be args.parking
     end,car_obs,env_obs = parking1.generate_obstacles() #car_obs is what car can see and env_obs is what see
-    print(end)
-    print(car_obs)
-    print(env_obs)
 
 
  
@@ -51,8 +47,6 @@ if __name__ == '__main__':
     new_obs = np.array([[78,78],[79,79],[78,79]])
     env_obs = np.vstack([env_obs,new_obs])
     car_obs = np.vstack([car_obs,new_obs])
-    print(car_obs)
-    print(env_obs)
     #############################################################################################
 
     ########################### initialization for map and car and booleans for Astar and QL ##################################################
@@ -68,25 +62,23 @@ if __name__ == '__main__':
     key = cv2.waitKey(1)
     
     #Astar
-    can_park = False #boolean to check if car can park
-    parkIsAstar = False #boolean to check if parking is done using A star
+    can_park = True #boolean to check if car can park
+    parkIsAstar = True #boolean to check if parking is done using A star
     current_pos = [] #to store the current position of the car
     counter = 0 #counter to check if car can park
     
     #QL
     trainQL = False #boolean to check if training of QL is true
-    envQL = ParkingEnvironment(current_pos, end, env_obs)
-    state_space_size = envQL.grid_width * envQL.grid_width  # 110 x 110 = 12100
     action_space_size = 8  # 8 directions of movement
     learning_rate = 0.1
     discount_factor = 0.99
-    exploration_rate = 1.0
-    agent = QLearningAgent(state_space_size, action_space_size, learning_rate, discount_factor, exploration_rate)
+    exploration_rate = 0.4
+    
     ####################################### Booleans and setting ######################################################
 
     ############################# path planning to Original Goal ###############################
     path_planner = ParkPathPlanning(car_obs) #path planner class to take in the obstacles visible to the car only
-
+    print('routing to end of carpark ...') 
     path = path_planner.plan_path(int(start[0]),int(start[1]),int(original_end[0]),int(original_end[1])) #path planning
     env.draw_path(path)
     ################################## Travel to original goal or empty parking slot ##################################################
@@ -107,15 +99,10 @@ if __name__ == '__main__':
             break
         
         #Rerouting to empty parking slot using QL planning as parking
-        if counter > 120:
-            print('rerouting to empty parking slot ...')
-            if parkIsAstar: #using A* path planning to park car
+        if can_park:
+            if counter >120:
+                print('rerouting to empty parking slot ...')
                 current_pos = path[0] #get current position of car
-                # end = end #replace new end with empty parking slot
-                break
-            else: #using Q learning to park car
-                current_pos = path[0]
-                # end = end #replace new end with empty parking slot
                 break
         if key == ord('s'):  #to save the imagee
             cv2.imwrite('res.png', res*255)
@@ -145,7 +132,12 @@ if __name__ == '__main__':
     ################################## Training QL or testing QL to park car ##################################################
     
     else: #if  park to be done using Q learning is true
+        envQL = ParkingEnvironment(current_pos, end, env_obs)
+        state_space_size = envQL.grid_width * envQL.grid_width  # 110 x 110 = 12100
+        agent = QLearningAgent(state_space_size, action_space_size, learning_rate, discount_factor, exploration_rate)
+        
         if trainQL:
+
             print('training park scenario using QL ...')
             # Training parameters
             num_episodes = 1000
@@ -171,20 +163,22 @@ if __name__ == '__main__':
             # Save the trained Q-table
             np.save("trained_q_table.npy", agent.q_table)
         else:
+
             print('testing park scenario using QL ...')
             # Load the trained Q-table
             q_table = np.load("trained_q_table.npy")
             agent.exploration_rate = 0  # Disable exploration
-            state = envQL.reset()  # Reset the environment to start state
-            state_index = envQL.get_state_index(state.x, state.y, env.grid_width)
-
+            x,y = envQL.reset()  # Reset the environment to start state
+            state_index = envQL.get_state_index() # Get the current state
+            pathQL = np.array([[x,y]])
             done = False
             while not done:
                 action = agent.choose_action(state_index)  # Choose best action based on Q-table
-                new_state, reward, done = env.step(action)  # Take the action
+                new_state, reward, done = agent.choose_action(action)  # Take the action
                 new_state_index = envQL.get_state_index(new_state.x, new_state.y, env.grid_width)
-
+                pathQL = np.vstack([path, np.array([[new_state.x, new_state.y]])]) #add the new state to the path
                 state_index = new_state_index
+            env.draw_path(path)
         
     # zeroing car steer
     res = env.render(my_car.x, my_car.y, my_car.psi, 0)

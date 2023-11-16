@@ -28,6 +28,7 @@ class ParkingEnvironment:
         return set([tuple(obstacle) for obstacle in obstacles])
             
     def reset(self):
+        # print("Current position:", self.current_pos)
         # Reset the environment to an initial state
         self.current_pos = self.initial_pos  # Set to initial position
         return self.current_pos[0],self.current_pos[1]   # Return the initial state in the environment as x,y coordinates

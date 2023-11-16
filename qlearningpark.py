@@ -16,9 +16,9 @@ class QLearningAgent:
             return np.argmax(self.q_table[state, :])  # Exploit
 
     def update_q_table(self, state, action, reward, next_state):
-        print(f"State index: {state}, Type: {type(state)}")
-        print(f"Action: {action}, Type: {type(action)}")
-        print(f"New State index: {next_state}, Type: {type(next_state)}")
+        # print(f"State index: {state}, Type: {type(state)}")
+        # print(f"Action: {action}, Type: {type(action)}")
+        # print(f"New State index: {next_state}, Type: {type(next_state)}")
         #Q(s,a) = Q(s,a) + learning_rate * (reward + discount_factor * max_future_q - Q(s,a))
         current_q = self.q_table[state, action]
         max_future_q = np.max(self.q_table[next_state, :]) 
