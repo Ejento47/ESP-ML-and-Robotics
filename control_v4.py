@@ -100,10 +100,10 @@ class Car_Dynamics:
     def detect_empty_parking(self, car_positions, empty_spaces):
         #check if the parking slot is empty
         for cars in car_positions:
-            print('cars is')
-            print(cars)
-            print('empty space')
-            print(empty_spaces)
+            # print('cars is')
+            # print(cars)
+            # print('empty space')
+            # print(empty_spaces)
             return cars in empty_spaces
                 
     def flip_xy(self,lst):
@@ -226,7 +226,7 @@ class Linear_MPC_Controller:
         # Define the initial guess for the optimization as a vector of zeros
         x0 = np.zeros((2 * self.horiz,))
         
-        # Perform the optimization to minimize the cost function
+        # Perform the optimization to minimize the cost function #SLSQP stands for Sequential Least SQuares Programming
         result = minimize(self.mpc_cost, x0, args=(my_car, points), method='SLSQP', bounds=bnd)
         
         # Return the first optimal input only

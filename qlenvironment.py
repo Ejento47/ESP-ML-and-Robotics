@@ -48,18 +48,31 @@ class ParkingEnvironment:
             6: (-1, 1),   # Lower-left
             7: (1, 1)     # Lower-right
         }
+        # print(self.goal_pos)
+        # print(self.current_pos)
 
             # Update current position based on the action
         move = movements[actions]
         new_pos = (self.current_pos[0] + move[0], self.current_pos[1] + move[1])
+        
+        # print(self.goal_pos)
+        # print(self.current_pos)
 
         # Check for boundaries, obstacles, and goal
         if  new_pos in self.obstacles:
+            print("hit")
             reward = -100  # Penalty for collision or out of bounds
             done = True
             return self.current_pos, reward, done
-        elif new_pos == self.goal_pos:
+        if new_pos[0] < 0 or new_pos[0] >= self.grid_width or new_pos[1] < 0 or new_pos[1] >= self.grid_width:
+            reward = -100
+            done = True
+            return self.current_pos, reward, done
+        
+        elif int(new_pos[0]) == int(self.goal_pos[0]) and int(new_pos[1]) == int(self.goal_pos[1]):
+            print("Goal reached")
             reward = 100  # Reward for reaching the goal
+            self.current_pos = new_pos
             done = True
             return self.current_pos, reward,done
         else:
@@ -68,8 +81,13 @@ class ParkingEnvironment:
             self.current_pos = new_pos  # Update position if safe to move
             return self.current_pos, reward,done
 
-    def get_state_index(self):
-        return round(self.current_pos[1] * self.grid_width + self.current_pos[0])
+    def get_state_index(self): # Convert the current position to a state index
+        return round((self.current_pos[1]-0.5) * self.grid_width + (self.current_pos[0]-0.5))
 
     def get_current_state(self):
         return self.current_pos[0],self.current_pos[1]
+
+    def get_position_from_state_index(self, state_index):
+        y = state_index // self.grid_width
+        x = state_index % self.grid_width
+        return x,y

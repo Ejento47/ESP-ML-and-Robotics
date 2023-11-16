@@ -31,9 +31,10 @@ if __name__ == '__main__':
     # pathplanning margin : 5
 
     ########################## defining obstacles ###############################################
-    # park_slot = args.parking
-    # park_slot = np.random.randint(-10,24)
-    parking1 = Parking1(1,original_end) # random parking slot selection ## of can be args.parking
+    park_slot = args.parking
+    #park_slot = np.random.randint(-10,24) 
+    #### if want to use QL change park_slot to 1
+    parking1 = Parking1(park_slot,original_end) # random parking slot selection ## of can be args.parking #only can use QL for the parking for first slot
     end,car_obs,env_obs = parking1.generate_obstacles() #car_obs is what car can see and env_obs is what see
 
 
@@ -63,8 +64,7 @@ if __name__ == '__main__':
     key = cv2.waitKey(1)
     
     #Astar
-    can_park = False #boolean to check if car can park
-    parkIsAstar = True #boolean to check if parking is done using A star
+    parkIsAstar = False #boolean to check if parking is done using A star
     current_pos = [] #to store the current position of the car
     counter = 0 #counter to check if car can park
     
@@ -141,15 +141,15 @@ if __name__ == '__main__':
     
     else: #if  park to be done using Q learning is true
         envQL = ParkingEnvironment(current_pos, end, env_obs)
-        state_space_size = envQL.grid_width * envQL.grid_width  # 110 x 110 = 12100
+        state_space_size = envQL.grid_width * envQL.grid_width*action_space_size # 110 x 110 x 8
         agent = QLearningAgent(state_space_size, action_space_size, learning_rate, discount_factor, exploration_rate)
         
         if trainQL:
 
             print('training park scenario using QL ...')
             # Training parameters
-            num_episodes = 1000
-            max_steps_per_episode = 100
+            num_episodes = 500000
+            max_steps_per_episode = 12100*8
             
             # Training loop
             for episode in range(num_episodes):
@@ -182,11 +182,12 @@ if __name__ == '__main__':
             done = False
             while not done:
                 action = agent.choose_action(state_index)  # Choose best action based on Q-table
-                new_state, reward, done = agent.choose_action(action)  # Take the action
-                new_state_index = envQL.get_state_index(new_state.x, new_state.y, env.grid_width)
-                pathQL = np.vstack([path, np.array([[new_state.x, new_state.y]])]) #add the new state to the path
+                new_state, reward, done = envQL.step(action)
+                new_state_index = envQL.get_state_index()
+                new_x, new_y = envQL.get_position_from_state_index(new_state_index)
+                pathQL = np.vstack([path, np.array([[new_x, new_y]])]) #add the new state to the path
                 state_index = new_state_index
-            env.draw_path(path)
+            env.draw_path(pathQL)
         
     # zeroing car steer
     res = env.render(my_car.x, my_car.y, my_car.psi, 0)
