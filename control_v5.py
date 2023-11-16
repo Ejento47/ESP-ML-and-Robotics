@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import minimize
 import copy
 import math
-# from environment_v4 import Environment, Parking1
+# from environment_v3 import Environment, Parking1
 
 
 class Car_Dynamics:
@@ -111,7 +111,6 @@ class Car_Dynamics:
         lstcopy[0] = lst[1]
         lstcopy[1] = lst[0]
         return lstcopy
-                
 
 #To optimise steering based off wheere you want to go    
 class MPC_Controller:

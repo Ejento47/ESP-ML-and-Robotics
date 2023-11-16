@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-# from control_v4 import Car_Dynamics, MPC_Controller, Linear_MPC_Controller
+import copy
+# from control_v3 import Car_Dynamics, MPC_Controller, Linear_MPC_Controller
 
 class Environment:
     def __init__(self,obstacles):
@@ -112,6 +113,7 @@ class Parking1:
                      17: [[35,68]], 18: [[65,68]], 19: [[75,68]], 20: [[95,68]],
                      21: [[35,80]], 22: [[65,80]], 23: [[75,80]], 24: [[95,80]]} #parking slots location
         self.cars_copy = list(self.cars.values())
+        self.car_popped = None
         self.parking_slots ={1 : True, 2 : True, 3 : True, 4 : True,
                             5 : True, 6 : True, 7 : True, 8 : True,
                             9 : True, 10: True, 11: True, 12: True,
@@ -121,7 +123,7 @@ class Parking1:
         if car_pos in self.cars.keys(): #if car_pos is a valid parking slot
             self.end = self.cars[car_pos][0]
             self.parking_slots[car_pos] = False
-            self.cars.pop(car_pos)
+            self.car_popped = self.cars.pop(car_pos)
         else:
             self.end =  end
 
